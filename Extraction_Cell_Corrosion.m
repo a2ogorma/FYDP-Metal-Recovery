@@ -97,7 +97,7 @@ y_cat = ((1-alpha_Cu)*z_Cu*F)/(R*temp);
 Ecorr(1) = ((log(x)*y_an*Erev_Fe(1))+(y_cat*Erev_Cu(1)))/((log(x)*y_an)+y_cat);
 icorr(1) = (n/z_Cu)*i0_Cu*(exp((1-alpha_Cu)*z_Cu*F*(Ecorr(1)-Erev_Cu(1))/(R*temp)));
 
-for i = 1:1:(tfinal/h)
+for i = 1:1:(tfinal/h) 
 	%Runge Kutta 4 for Cu
 	k1 = dC_dt(C_Cu2(i), C_Cu2_o, E_cat, Erev_Cu(i), alpha_Cu, z_Cu, S_cat,i0_Cu);
 	k2 = dC_dt(C_Cu2(i)+h*k1/2, C_Cu2_o, E_cat, Erev_Cu(i), alpha_Cu, z_Cu, S_cat,i0_Cu);
@@ -120,13 +120,12 @@ for i = 1:1:(tfinal/h)
     %Nernst
 	Erev_Cu(i+1) = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma_Cu2*C_Cu2(i+1)));
 	Erev_Fe(i+1) = Eo_Fe - R*temp/(z_Fe*F)*log(gamma_Fe2*C_Fe2(i+1)/gamma_Fe3*C_Fe3(i+1));
-    %BV
-    i_Cu(i) = i_BV_corr(Ecorr(i), Erev_Cu(i), i0_Cu, alpha_Cu, z_Cu, temp);
-    i_Fe(i) = i_BV_corr(Ecorr(i), Erev_Fe(i), i0_Fe, alpha_Fe, z_Fe, temp);
+    
     %Ecorr
-    fun = @fun;
+    fun = @(Ecorr)cor(Ecorr, [Erev_Cu(i+1), Erev_Fe(i+1)], [i0_Cu, i0_Fe], [alpha_Cu, alpha_Fe],[z_Cu, z_Fe], temp);
     Ecorr(i+1) = fzero(fun,x0(i));
     x0(i+1) = Ecorr(i+1);
+    icorr(i+1) = i0_Cu*(z_Cu*F/(R*temp))*(Ecorr(i+1)-Erev_Cu(i+1));
     %{ 
     Old overpotential stuff that did not use BV
     %Ecorr(i+1) = ((log(x)*y_an*Erev_Fe(i+1))+(y_cat*Erev_Cu(i+1)))/((log(x)*y_an)+y_cat); %Overpotential |n| > 0.2.
