@@ -44,14 +44,14 @@ mmAu = 107.8682; %g/mol
 mmPd = 106.42; %g/mol
 
 %System variables
-Fin = 0; %L/s
+Fin = 10; %L/s
 Fout = Fin; %kept same for now, may want to make into different values to account for accumulation and controls
 T = 298.15; %K, we can play around with this but if we want to vary this kinetically then I oop
 V = 100; %L
 cursivel = 10; %m, characteristic distance
 Acat = 10; %m2, area
 Aan = 10; %m2, area
-Vapp = 3; %V
+Vapp = 8; %V
 Rhardware = 0; %set to 0 for now before i do something with it
 
 %setting up initial conc in cell
@@ -95,7 +95,7 @@ dnS2O3dt = @(CS2O30,nS2O3,t,iAg,iAu,iPd) CS2O30*Fin-nS2O3*Fout/V-(2/F)*iAg*Acat-
 %modelling method vars
 t(1) = 0; %time initial
 h = 1/60; %step size, basically does a minute of time
-tfinal = 720;
+tfinal = 72;
 
 for iter = 1:1:(tfinal/h)
     %calculated vars
@@ -109,15 +109,15 @@ for iter = 1:1:(tfinal/h)
     ErevPd(iter) = 0.0862 + (Rgas*T/(2*F))*log(((gamS2O3*(nS2O3(iter)/V))^4)/((gamAg*nPdS2O34(iter))/V));
     ErevH(iter) = 0 + (Rgas*T/F)*log((aH2^0.5)/(gamH*nH(iter)));
     %solving for current and overpotentials
-    CurrentFunc = @(eta) Aan*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T))) + iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))))+Acat*( iAg0*(exp(alphaAg*F*eta(2)/(Rgas*T))-exp(-(1-alphaAg)*F*eta(2)/(Rgas*T))) + iAu0*(exp(alphaAu*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T))-exp(-(1-alphaAu)*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T))) + iPd0*(exp(alphaPd*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T))-exp(-(1-alphaPd)*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T)))+iH0*(exp(alphaH*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T))-exp(-(1-alphaH)*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T))));
-    VappFunc = @(eta) abs(ErevAg(iter)-ErevAn(iter))+Aan*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T)))+ iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))))*(R(1)+Rhardware)+abs(eta(1))+abs(eta(2))-Vapp;
+    CurrentFunc = @(eta) Aan*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T))) + iFe0*(exp(alphaFe*F*(ErevAn(iter)+eta(1)-ErevFe(iter))/(Rgas*T))-exp(-(1-alphaFe)*F*(ErevAn(iter)+eta(1)-ErevFe(iter))/(Rgas*T))))+Acat*( iAg0*(exp(alphaAg*F*eta(2)/(Rgas*T))-exp(-(1-alphaAg)*F*eta(2)/(Rgas*T))) + iAu0*(exp(alphaAu*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T))-exp(-(1-alphaAu)*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T))) + iPd0*(exp(alphaPd*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T))-exp(-(1-alphaPd)*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T)))+iH0*(exp(alphaH*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T))-exp(-(1-alphaH)*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T))));
+    VappFunc = @(eta) abs(ErevAg(iter)-ErevAn(iter))+Aan*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T)))+ iFe0*(exp(alphaFe*F*(ErevAn(iter)+eta(1)-ErevFe(iter))/(Rgas*T))-exp(-(1-alphaFe)*F*(ErevAn(iter)+eta(1)-ErevFe(iter))/(Rgas*T))))*(R(1)+Rhardware)+abs(eta(1))+abs(eta(2))-Vapp;
     overpotentialFunc = @(eta) [CurrentFunc(eta);VappFunc(eta)];  
     etaGuess0 = [etaAn(iter) etaAg(iter)];
     options = optimoptions('fsolve','MaxFunctionEvaluations',1000,'MaxIterations',1000);
     eta = fsolve(overpotentialFunc,etaGuess0,options);
     %assigning overpotentials    
-    etaAn(iter) = eta(1);
-    etaFe(iter) = -ErevAn(iter)+eta(1)+ErevFe(iter);
+    etaAn(iter+1) = eta(1);
+    etaFe(iter+1) = -ErevAn(iter)+eta(1)+ErevFe(iter);
     etaAg(iter) = eta(2);
     etaAu(iter) = ErevAg(iter)+eta(2)-ErevAu(iter);
     etaPd(iter) = ErevAg(iter)+eta(2)-ErevPd(iter);
@@ -132,8 +132,6 @@ for iter = 1:1:(tfinal/h)
     iAn(iter) = iAn0*(exp(alphaAn*4*F*(etaAn(iter))/(Rgas*T))-exp(-(1-alphaAn)*4*F*etaAn(iter)/(Rgas*T)));
     Itot(iter) = Acat*(iAg(iter)+iAu(iter)+iPd(iter)+iH(iter));
     Iantot(iter) = Aan*(iAn(iter)+iFe2(iter));
-    Vappdiff(iter) = VappFunc(eta);
-    Idiff(iter) = CurrentFunc(eta);
     %Ag
     k1 = dnAgdt(CAgS2O320(iter),nAgS2O32(iter),t(iter),iAg(iter));
     k2 = dnAgdt((CAgS2O320(iter)+(1/2)*h*k1),(nAgS2O32(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k1));
@@ -179,33 +177,24 @@ for iter = 1:1:(tfinal/h)
     %H
     nH(iter+1) = nH(iter); % refine this, im assuming something constantly balances pH here (or the conc is so big it dont matta)
     %other variables to calc
-    etaAn(iter+1) = eta(1);
-    etaAg(iter+1) = eta(2);
+
     %additional processing equations
-    wAg(iter+1) = -(Acat*mmAg/F)*h*60*(sum(iAg)-iAg(end));
-    wAu(iter+1) = -(Acat*mmAu/F)*h*60*(sum(iAu)-iAu(end));
-    wPd(iter+1) = -(Acat*mmPd/(2*F))*h*60*(sum(iPd)-iPd(end));
+    wAg(iter+1) = (Acat*mmAg/F)*h*60*(sum(iAg)-iAg(end));
+    wAu(iter+1) = (Acat*mmAu/F)*h*60*(sum(iAu)-iAu(end));
+    wPd(iter+1) = (Acat*mmPd/(2*F))*h*60*(sum(iPd)-iPd(end));
 end
-t(iter+1)=h*(iter+1);
 CAg = nAgS2O32./V;
 CAu = nAuS2O32./V;
 CPd = nPdS2O34./V;
 RemAg = CAg./CAg(1);
 RemAu = CAu./CAu(1);
 RemPd = CPd./CPd(1);
-subplot(2,2,1)
-plot(t(1:end-1),Vappdiff)
-title('Vapp Error')
-subplot(2,2,2)
-plot(t(1:end-1),Idiff)
-title('Current error')
-subplot(2,2,3)
 plot(t,RemAg,t,RemAu,t,RemPd)
 xlabel('Time (h)')
 ylabel('% consumption from initial')
 title('Remaining in solution over time, step size 1 min')
 legend('Silver','Gold','Palladium')
-subplot(2,2,4)
+figure
 plot(t,wAg,t,wAu,t,wPd)
 xlabel('Time (h)')
 ylabel('Total amount deposited (g)')
