@@ -43,7 +43,7 @@ mmAg = 196.96657; %g/mol
 mmAu = 107.8682; %g/mol
 mmPd = 106.42; %g/mol
 
-%System variables
+%System parameters
 Fin = 0; %L/s
 Fout = Fin; %kept same for now, may want to make into different values to account for accumulation and controls
 T = 298.15; %K, we can play around with this but if we want to vary this kinetically then I oop
@@ -51,8 +51,9 @@ V = 100; %L
 cursivel = 10; %m, characteristic distance
 Acat = 10; %m2, area
 Aan = 10; %m2, area
-Vapp = 3; %V
+Vapp = 1; %V
 Rhardware = 0; %set to 0 for now before i do something with it
+tfinal = 72;
 
 %setting up initial conc in cell
 nAgS2O32(1) = CAgS2O320(1)*V; % moles of silver remaining
@@ -95,7 +96,7 @@ dnS2O3dt = @(CS2O30,nS2O3,t,iAg,iAu,iPd) CS2O30*Fin-nS2O3*Fout/V-(2/F)*iAg*Acat-
 %modelling method vars
 t(1) = 0; %time initial
 h = 1/60; %step size, basically does a minute of time
-tfinal = 720;
+
 
 for iter = 1:1:(tfinal/h)
     %calculated vars
