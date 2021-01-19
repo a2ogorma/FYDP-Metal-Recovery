@@ -1,6 +1,7 @@
 clear all
 tic
-%inlet concs for now
+%%%initial cell concs%%%
+%Corrosion
 CAgS2O320(1) = 0.10;
 CAuS2O320(1) = 0.05;
 CPdS2O340(1) = 0.0001;
@@ -9,7 +10,17 @@ CFe20(1) = 0.005;
 CFe30(1) = 0.001;
 CS2O30(1) = 0.05;
 COH0(1) = (1e-14)/CH0(1);
+%Electrowinning
+CAgS2O32(1) = 0.10;
+CAuS2O32(1) = 0.05;
+CPdS2O34(1) = 0.0001;
+CH(1) = 1e-10;
+CFe2(1) = 0.005;
+CFe3(1) = 0.001;
+CS2O3(1) = 0.05;
+COH(1) = (1e-14)/CH0(1);
 
+%%%Properties%%%
 %conductivity values, check on this (S m2 /mol)
 gammaAg = 61.90e-4;
 gammaAu = 4.1e7;
@@ -43,27 +54,35 @@ mmAg = 196.96657; %g/mol
 mmAu = 107.8682; %g/mol
 mmPd = 106.42; %g/mol
 
-%System parameters
-Fin = 0; %L/s
+%%%System parameters%%%
+Fin = 10; %L/s
 Fout = Fin; %kept same for now, may want to make into different values to account for accumulation and controls
-T = 298.15; %K, we can play around with this but if we want to vary this kinetically then I oop
-V = 100; %L
-cursivel = 10; %m, characteristic distance
-Acat = 10; %m2, area
-Aan = 10; %m2, area
-Vapp = 1; %V
-Rhardware = 0; %set to 0 for now before i do something with it
 tfinal = 72;
+%corrosion
+Ecorr(1) = 0; %initial guess for corrosion potential
+T_corr = 298.15;
+V_corr = 100; %L
+cursivel_corr = 10; %m, characteristic distance
+A_corr = 10;%m2, area of uniform corrosion
+Rhardware_corr = 0; %set to 0 for now before i do something with it
+%electrowinning
+Vapp = 8; %V
+T_elec = 298.15; %K, we can play around with this but if we want to vary this kinetically then I oop
+V_elec = 100; %L
+cursivel_elec = 10; %m, characteristic distance
+Acat_elec = 10; %m2, area
+Aan_elec = 10; %m2, area
+Rhardware_elec = 0; %set to 0 for now before i do something with it
 
 %setting up initial conc in cell
-nAgS2O32(1) = CAgS2O320(1)*V; % moles of silver remaining
-nAuS2O32(1) = CAuS2O320(1)*V; % moles
-nPdS2O34(1) = CPdS2O340(1)*V; % moles
-nS2O3(1) = CS2O30(1)*V;
-nFe2(1) = CFe20(1)*V;
-nFe3(1) = CFe30(1)*V;
-nH(1) = CH0(1)*V; % moles
-nOH(1) = COH0(1)*V;
+nAgS2O32(1) = CAgS2O320(1)*V_elec; % moles of silver remaining
+nAuS2O32(1) = CAuS2O320(1)*V_elec; % moles
+nPdS2O34(1) = CPdS2O340(1)*V_elec; % moles
+nS2O3(1) = CS2O30(1)*V_elec;
+nFe2(1) = CFe20(1)*V_elec;
+nFe3(1) = CFe30(1)*V_elec;
+nH(1) = CH0(1)*V_elec; % moles
+nOH(1) = COH0(1)*V_elec;
 aO2 = 0.21;%atm, its always this cause atmosphere,but maybe we wanna pressurize
 aH2 = 0.0001;%dunnno what this should be
 
@@ -86,12 +105,12 @@ etaAn(1) = 0.8;%initial guesses for overpot
 etaAg(1) = -0.8;%initial guesses for overpot
 
 %electrochemical equations and relations
-dnAgdt = @(CAg0,nAg,t,iAg) CAg0*Fin-nAg*Fout/V+(1/F)*iAg*Acat;
-dnAudt = @(CAu0,nAu,t,iAu) CAu0*Fin-nAu*Fout/V+(1/F)*iAu*Acat;
-dnPddt = @(CPd0,nPd,t,iPd) CPd0*Fin-nPd*Fout/V+(1/(2*F))*iPd*Acat;
-dnFe2dt = @(CFe20,nFe2,t,iFe2) CFe20*Fin-nFe2*Fout/V+(1/F)*iFe2*Aan;
-dnFe3dt = @(CFe30,nFe3,t,iFe2) CFe30*Fin-nFe3*Fout/V-(1/F)*iFe2*Aan;
-dnS2O3dt = @(CS2O30,nS2O3,t,iAg,iAu,iPd) CS2O30*Fin-nS2O3*Fout/V-(2/F)*iAg*Acat-(2/F)*iAu*Acat-(4/(2*F))*iPd*Acat;
+dnAgdt = @(CAg0,CAg,t,iAg) CAg0*Fin-CAg*Fout+(1/F)*iAg*Acat_elec;
+dnAudt = @(CAu0,CAu,t,iAu) CAu0*Fin-CAu*Fout+(1/F)*iAu*Acat_elec;
+dnPddt = @(CPd0,CPd,t,iPd) CPd0*Fin-CPd*Fout+(1/(2*F))*iPd*Acat_elec;
+dnFe2dt = @(CFe20,CFe2,t,iFe2) CFe20*Fin-CFe2*Fout+(1/F)*iFe2*Aan_elec;
+dnFe3dt = @(CFe30,CFe3,t,iFe2) CFe30*Fin-CFe3*Fout-(1/F)*iFe2*Aan_elec;
+dnS2O3dt = @(CS2O30,CS2O3,t,iAg,iAu,iPd) CS2O30*Fin-CS2O3*Fout-(2/F)*iAg*Acat_elec-(2/F)*iAu*Acat_elec-(4/(2*F))*iPd*Acat_elec;
 
 %modelling method vars
 t(1) = 0; %time initial
@@ -99,19 +118,76 @@ h = 1/60; %step size, basically does a minute of time
 
 
 for iter = 1:1:(tfinal/h)
+    t(iter) = h*iter;
+    %%%Corrosion%%%
+    ErevAn_corr(iter) = 1.23 - (Rgas*T_corr/(4*F))*log(aO2*(gamH*CH0(iter))^4);
+    ErevFe_corr(iter) = 0.77 - (Rgas*T_corr/F)*log(gamFe3*(CFe20(iter))/(gamFe2*(CFe30(iter))));
+    ErevAg_corr(iter) = 0.060113 + (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAgS2O320(iter)));
+    ErevAu_corr(iter) = 0.153 + (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAuS2O320(iter)));
+    ErevPd_corr(iter) = 0.0862 + (Rgas*T_corr/(2*F))*log(((gamS2O3*(CS2O30(iter)))^4)/((gamAg*CPdS2O340(iter))));
+    ErevH_corr(iter) = 0 + (Rgas*T_corr/F)*log((aH2^0.5)/(gamH*CH0(iter)));
+    
+    CorrosionFunc = @(Ecorr) A_corr*(i_BV((Ecorr-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr) + i_BV((Ecorr-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr) + i_BV((Ecorr-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr) + i_BV((Ecorr-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr) );
+    Ecorr(iter) = fzero(CorrosionFunc,Ecorr(iter));
+    Ecorr(iter+1) = Ecorr(iter); %setting up next initial guess
+    iAg_corr(iter) = i_BV((Ecorr(iter)-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr);
+    iAu_corr(iter) = i_BV((Ecorr(iter)-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr);
+    iPd_corr(iter) = i_BV((Ecorr(iter)-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr);
+    iFe2_corr(iter) = i_BV((Ecorr(iter)-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr);
+    
+    %Ag
+    k1 = dnAgdt(CAgS2O32(iter),CAgS2O320(iter),t(iter),iAg_corr(iter));
+    k2 = dnAgdt((CAgS2O32(iter)+(1/2)*h*k1),(CAgS2O320(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k1));
+    k3 = dnAgdt((CAgS2O32(iter)+(1/2)*h*k2),(CAgS2O320(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k2));
+    k4 = dnAgdt((CAgS2O32(iter)+h*k3),(CAgS2O320(iter)+h*k3),(t(iter)+h),(iAg_corr(iter)+h*k3));
+    CAgS2O320(iter+1) = subplus(CAgS2O320(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
+    %Au
+    k1 = dnAudt(CAuS2O32(iter),CAuS2O320(iter),t(iter),iAu_corr(iter));
+    k2 = dnAudt((CAuS2O32(iter)+(1/2)*h*k1),(CAuS2O320(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAu_corr(iter)+(1/2)*h*k1));
+    k3 = dnAudt((CAuS2O32(iter)+(1/2)*h*k2),(CAuS2O320(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAu_corr(iter)+(1/2)*h*k2));
+    k4 = dnAudt((CAuS2O32(iter)+h*k3),(CAuS2O320(iter)+h*k3),(t(iter)+h),(iAu_corr(iter)+h*k3));
+    CAuS2O320(iter+1) = subplus(CAuS2O320(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
+    %Pd
+    k1 = dnPddt(CPdS2O34(iter),CPdS2O340(iter),t(iter),iPd_corr(iter));
+    k2 = dnPddt((CPdS2O34(iter)+(1/2)*h*k1),(CPdS2O340(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iPd_corr(iter)+(1/2)*h*k1));
+    k3 = dnPddt((CPdS2O34(iter)+(1/2)*h*k2),(CPdS2O340(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iPd_corr(iter)+(1/2)*h*k2));
+    k4 = dnPddt((CPdS2O34(iter)+h*k3),(CPdS2O340(iter)+h*k3),(t(iter)+h),(iPd_corr(iter)+h*k3));
+    CPdS2O340(iter+1) = subplus(CPdS2O340(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
+    %Fe2
+    k1 = dnFe2dt(CFe2(iter),CFe20(iter),t(iter),iFe2_corr(iter));
+    k2 = dnFe2dt((CFe2(iter)+(1/2)*h*k1),(CFe20(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k1));
+    k3 = dnFe2dt((CFe2(iter)+(1/2)*h*k2),(CFe20(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k2));
+    k4 = dnFe2dt((CFe2(iter)+h*k3),(CFe20(iter)+h*k3),(t(iter)+h),(iFe2_corr(iter)+h*k3));
+    CFe20(iter+1) = subplus(CFe20(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
+    %Fe3
+    k1 = dnFe3dt(CFe3(iter),CFe30(iter),t(iter),iFe2_corr(iter));
+    k2 = dnFe3dt((CFe3(iter)+(1/2)*h*k1),(CFe30(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k1));
+    k3 = dnFe3dt((CFe3(iter)+(1/2)*h*k2),(CFe30(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k2));
+    k4 = dnFe3dt((CFe3(iter)+h*k3),(CFe30(iter)+h*k3),(t(iter)+h),(iFe2_corr(iter)+h*k3));
+    CFe30(iter+1) = subplus(CFe30(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
+    %S2O3
+    k1 = dnS2O3dt(CS2O3(iter),CS2O30(iter),t(iter),iAg_corr(iter),iAu_corr(iter),iPd_corr(iter));
+    k2 = dnS2O3dt((CS2O3(iter)+(1/2)*h*k1),(CS2O30(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k1),(iAu_corr(iter)+(1/2)*h*k1),(iPd_corr(iter)+(1/2)*h*k1));
+    k3 = dnS2O3dt((CS2O3(iter)+(1/2)*h*k2),(CS2O30(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k2),(iAu_corr(iter)+(1/2)*h*k2),(iPd_corr(iter)+(1/2)*h*k2));
+    k4 = dnS2O3dt((CS2O3(iter)+h*k3),(CS2O30(iter)+h*k3),(t(iter)+h),(iAg_corr(iter)+h*k3),(iAu_corr(iter)+h*k3),(iPd_corr(iter)+h*k3));
+    CS2O30(iter+1) = subplus(CS2O30(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
+    %H
+    CH0(iter+1) = CH0(iter); % refine this, im assuming something constantly balances pH here (or the conc is so big it dont matta)
+    
+    %%%Electrowinning%%%
     %calculated vars
-    K(iter) = gammaAg*nAgS2O32(iter)+gammaAu*nAuS2O32(1)+gammaPd*2*nPdS2O34(1)+gammaH*nH(1);%update this
-    R(iter) = cursivel/(Acat*K(1));
+    K(iter) = gammaAg*CAgS2O32(iter)+gammaAu*CAuS2O32(iter)+gammaPd*2*CPdS2O34(iter)+gammaH*CH(iter);%update this
+    R(iter) = cursivel_elec/(Acat_elec*K(1));
     %nernst potentials
-    ErevAn(iter) = -1.23 + (Rgas*T/(4*F))*log(aO2*(gamH*nH(1)/V)^4);
-    ErevFe(iter) = -0.77 + (Rgas*T/F)*log(gamFe3*(nFe2(iter)/V)/(gamFe2*(nFe3(iter)/V)));
-    ErevAg(iter) = 0.060113 + (Rgas*T/(F))*log(((gamS2O3*(nS2O3(iter)/V))^2)/(gamAg*nAgS2O32(iter)/V));
-    ErevAu(iter) = 0.153 + (Rgas*T/(F))*log(((gamS2O3*(nS2O3(iter)/V))^2)/(gamAg*nAuS2O32(iter)/V));
-    ErevPd(iter) = 0.0862 + (Rgas*T/(2*F))*log(((gamS2O3*(nS2O3(iter)/V))^4)/((gamAg*nPdS2O34(iter))/V));
-    ErevH(iter) = 0 + (Rgas*T/F)*log((aH2^0.5)/(gamH*nH(iter)));
+    ErevAn(iter) = -1.23 + (Rgas*T_elec/(4*F))*log(aO2*(gamH*CH(iter))^4);
+    ErevFe(iter) = -0.77 + (Rgas*T_elec/F)*log(gamFe3*(CFe2(iter))/(gamFe2*(CFe3(iter))));
+    ErevAg(iter) = 0.060113 + (Rgas*T_elec/(F))*log(((gamS2O3*(CS2O3(iter)))^2)/(gamAg*CAgS2O32(iter)));
+    ErevAu(iter) = 0.153 + (Rgas*T_elec/(F))*log(((gamS2O3*(CS2O3(iter)))^2)/(gamAg*CAuS2O32(iter)));
+    ErevPd(iter) = 0.0862 + (Rgas*T_elec/(2*F))*log(((gamS2O3*(CS2O3(iter)))^4)/((gamAg*CPdS2O34(iter))));
+    ErevH(iter) = 0 + (Rgas*T_elec/F)*log((aH2^0.5)/(gamH*CH(iter)));
     %solving for current and overpotentials
-    CurrentFunc = @(eta) Aan*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T))) + iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))))+Acat*( iAg0*(exp(alphaAg*F*eta(2)/(Rgas*T))-exp(-(1-alphaAg)*F*eta(2)/(Rgas*T))) + iAu0*(exp(alphaAu*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T))-exp(-(1-alphaAu)*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T))) + iPd0*(exp(alphaPd*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T))-exp(-(1-alphaPd)*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T)))+iH0*(exp(alphaH*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T))-exp(-(1-alphaH)*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T))));
-    VappFunc = @(eta) abs(ErevAg(iter)-ErevAn(iter))+Aan*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T)))+ iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T))))*(R(1)+Rhardware)+abs(eta(1))+abs(eta(2))-Vapp;
+    CurrentFunc = @(eta) Aan_elec*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T_elec))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T_elec))) + iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))))+Acat_elec*( iAg0*(exp(alphaAg*F*eta(2)/(Rgas*T_elec))-exp(-(1-alphaAg)*F*eta(2)/(Rgas*T_elec))) + iAu0*(exp(alphaAu*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T_elec))-exp(-(1-alphaAu)*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T_elec))) + iPd0*(exp(alphaPd*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T_elec))-exp(-(1-alphaPd)*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T_elec)))+iH0*(exp(alphaH*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T_elec))-exp(-(1-alphaH)*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T_elec))));
+    VappFunc = @(eta) abs(ErevAg(iter)-ErevAn(iter))+Aan_elec*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T_elec))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T_elec)))+ iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))))*(R(1)+Rhardware_elec)+abs(eta(1))+abs(eta(2))-Vapp;
     overpotentialFunc = @(eta) [CurrentFunc(eta);VappFunc(eta)];  
     etaGuess0 = [etaAn(iter) etaAg(iter)];
     options = optimoptions('fsolve','MaxFunctionEvaluations',1000,'MaxIterations',1000);
@@ -123,74 +199,67 @@ for iter = 1:1:(tfinal/h)
     etaAu(iter) = ErevAg(iter)+eta(2)-ErevAu(iter);
     etaPd(iter) = ErevAg(iter)+eta(2)-ErevPd(iter);
     etaH(iter) = ErevAg(iter)+eta(2)-ErevH(iter);
-    %assigning time and currents
-    t(iter) = h*iter;
-    iAg(iter) = iAg0*(exp(alphaAg*1*F*(etaAg(iter))/(Rgas*T))-exp(-(1-alphaAg)*1*F*etaAg(iter)/(Rgas*T)));
-    iAu(iter) = iAu0*(exp(alphaAu*1*F*(etaAu(iter))/(Rgas*T))-exp(-(1-alphaAu)*1*F*etaAu(iter)/(Rgas*T)));
-    iPd(iter) = iPd0*(exp(alphaPd*2*F*(etaPd(iter))/(Rgas*T))-exp(-(1-alphaPd)*2*F*etaPd(iter)/(Rgas*T)));
-    iH(iter) = iH0*(exp(alphaH*1*F*(etaH(iter))/(Rgas*T))-exp(-(1-alphaH)*1*F*etaH(iter)/(Rgas*T)));
-    iFe2(iter) = iFe0*(exp(alphaFe*F*(etaFe(iter))/(Rgas*T))-exp(-(1-alphaFe)*F*etaFe(iter)/(Rgas*T)));
-    iAn(iter) = iAn0*(exp(alphaAn*4*F*(etaAn(iter))/(Rgas*T))-exp(-(1-alphaAn)*4*F*etaAn(iter)/(Rgas*T)));
-    Itot(iter) = Acat*(iAg(iter)+iAu(iter)+iPd(iter)+iH(iter));
-    Iantot(iter) = Aan*(iAn(iter)+iFe2(iter));
+    %assigning currents
+    iAg(iter) = iAg0*(exp(alphaAg*1*F*(etaAg(iter))/(Rgas*T_elec))-exp(-(1-alphaAg)*1*F*etaAg(iter)/(Rgas*T_elec)));
+    iAu(iter) = iAu0*(exp(alphaAu*1*F*(etaAu(iter))/(Rgas*T_elec))-exp(-(1-alphaAu)*1*F*etaAu(iter)/(Rgas*T_elec)));
+    iPd(iter) = iPd0*(exp(alphaPd*2*F*(etaPd(iter))/(Rgas*T_elec))-exp(-(1-alphaPd)*2*F*etaPd(iter)/(Rgas*T_elec)));
+    iH(iter) = iH0*(exp(alphaH*1*F*(etaH(iter))/(Rgas*T_elec))-exp(-(1-alphaH)*1*F*etaH(iter)/(Rgas*T_elec)));
+    iFe2(iter) = iFe0*(exp(alphaFe*F*(etaFe(iter))/(Rgas*T_elec))-exp(-(1-alphaFe)*F*etaFe(iter)/(Rgas*T_elec)));
+    iAn(iter) = iAn0*(exp(alphaAn*4*F*(etaAn(iter))/(Rgas*T_elec))-exp(-(1-alphaAn)*4*F*etaAn(iter)/(Rgas*T_elec)));
+    Itot(iter) = Acat_elec*(iAg(iter)+iAu(iter)+iPd(iter)+iH(iter));
+    Iantot(iter) = Aan_elec*(iAn(iter)+iFe2(iter));
     Vappdiff(iter) = VappFunc(eta);
     Idiff(iter) = CurrentFunc(eta);
     %Ag
-    k1 = dnAgdt(CAgS2O320(iter),nAgS2O32(iter),t(iter),iAg(iter));
-    k2 = dnAgdt((CAgS2O320(iter)+(1/2)*h*k1),(nAgS2O32(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k1));
-    k3 = dnAgdt((CAgS2O320(iter)+(1/2)*h*k2),(nAgS2O32(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k2));
-    k4 = dnAgdt((CAgS2O320(iter)+h*k3),(nAgS2O32(iter)+h*k3),(t(iter)+h),(iAg(iter)+h*k3));
-    nAgS2O32(iter+1) = subplus(nAgS2O32(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    CAgS2O320(iter+1) = CAgS2O320(iter);%nAg(iter+1);%for continuous recycle, use the commented out section. May add functionality for further coupled interactions.
+    k1 = dnAgdt(CAgS2O320(iter),CAgS2O32(iter),t(iter),iAg(iter));
+    k2 = dnAgdt((CAgS2O320(iter)+(1/2)*h*k1),(CAgS2O32(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k1));
+    k3 = dnAgdt((CAgS2O320(iter)+(1/2)*h*k2),(CAgS2O32(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k2));
+    k4 = dnAgdt((CAgS2O320(iter)+h*k3),(CAgS2O32(iter)+h*k3),(t(iter)+h),(iAg(iter)+h*k3));
+    CAgS2O32(iter+1) = subplus(CAgS2O32(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
     %Au
-    k1 = dnAudt(CAuS2O320(iter),nAuS2O32(iter),t(iter),iAu(iter));
-    k2 = dnAudt((CAuS2O320(iter)+(1/2)*h*k1),(nAuS2O32(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAu(iter)+(1/2)*h*k1));
-    k3 = dnAudt((CAuS2O320(iter)+(1/2)*h*k2),(nAuS2O32(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAu(iter)+(1/2)*h*k2));
-    k4 = dnAudt((CAuS2O320(iter)+h*k3),(nAuS2O32(iter)+h*k3),(t(iter)+h),(iAu(iter)+h*k3));
-    nAuS2O32(iter+1) = subplus(nAuS2O32(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    CAuS2O320(iter+1) = CAuS2O320(iter);%nAu(iter+1);
+    k1 = dnAudt(CAuS2O320(iter),CAuS2O32(iter),t(iter),iAu(iter));
+    k2 = dnAudt((CAuS2O320(iter)+(1/2)*h*k1),(CAuS2O32(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAu(iter)+(1/2)*h*k1));
+    k3 = dnAudt((CAuS2O320(iter)+(1/2)*h*k2),(CAuS2O32(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAu(iter)+(1/2)*h*k2));
+    k4 = dnAudt((CAuS2O320(iter)+h*k3),(CAuS2O32(iter)+h*k3),(t(iter)+h),(iAu(iter)+h*k3));
+    CAuS2O32(iter+1) = subplus(CAuS2O32(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
     %Pd
-    k1 = dnPddt(CPdS2O340(iter),nPdS2O34(iter),t(iter),iPd(iter));
-    k2 = dnPddt((CPdS2O340(iter)+(1/2)*h*k1),(nPdS2O34(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iPd(iter)+(1/2)*h*k1));
-    k3 = dnPddt((CPdS2O340(iter)+(1/2)*h*k2),(nPdS2O34(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iPd(iter)+(1/2)*h*k2));
-    k4 = dnPddt((CPdS2O340(iter)+h*k3),(nPdS2O34(iter)+h*k3),(t(iter)+h),(iPd(iter)+h*k3));
-    nPdS2O34(iter+1) = subplus(nPdS2O34(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    CPdS2O340(iter+1) = CPdS2O340(iter);%nPd(iter+1);
+    k1 = dnPddt(CPdS2O340(iter),CPdS2O34(iter),t(iter),iPd(iter));
+    k2 = dnPddt((CPdS2O340(iter)+(1/2)*h*k1),(CPdS2O34(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iPd(iter)+(1/2)*h*k1));
+    k3 = dnPddt((CPdS2O340(iter)+(1/2)*h*k2),(CPdS2O34(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iPd(iter)+(1/2)*h*k2));
+    k4 = dnPddt((CPdS2O340(iter)+h*k3),(CPdS2O34(iter)+h*k3),(t(iter)+h),(iPd(iter)+h*k3));
+    CPdS2O34(iter+1) = subplus(CPdS2O34(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
     %Fe2
-    k1 = dnFe2dt(CFe20(iter),nFe2(iter),t(iter),iFe2(iter));
-    k2 = dnFe2dt((CFe20(iter)+(1/2)*h*k1),(nFe2(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k1));
-    k3 = dnFe2dt((CFe20(iter)+(1/2)*h*k2),(nFe2(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k2));
-    k4 = dnFe2dt((CFe20(iter)+h*k3),(nFe2(iter)+h*k3),(t(iter)+h),(iFe2(iter)+h*k3));
-    nFe2(iter+1) = subplus(nFe2(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    CFe20(iter+1) = CFe20(iter);%nPd(iter+1);
+    k1 = dnFe2dt(CFe20(iter),CFe2(iter),t(iter),iFe2(iter));
+    k2 = dnFe2dt((CFe20(iter)+(1/2)*h*k1),(CFe2(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k1));
+    k3 = dnFe2dt((CFe20(iter)+(1/2)*h*k2),(CFe2(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k2));
+    k4 = dnFe2dt((CFe20(iter)+h*k3),(CFe2(iter)+h*k3),(t(iter)+h),(iFe2(iter)+h*k3));
+    CFe2(iter+1) = subplus(CFe2(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
     %Fe3
-    k1 = dnFe3dt(CFe30(iter),nFe3(iter),t(iter),iFe2(iter));
-    k2 = dnFe3dt((CFe30(iter)+(1/2)*h*k1),(nFe3(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k1));
-    k3 = dnFe3dt((CFe30(iter)+(1/2)*h*k2),(nFe3(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k2));
-    k4 = dnFe3dt((CFe30(iter)+h*k3),(nFe3(iter)+h*k3),(t(iter)+h),(iFe2(iter)+h*k3));
-    nFe3(iter+1) = subplus(nFe3(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    CFe30(iter+1) = CFe30(iter);%nPd(iter+1);
+    k1 = dnFe3dt(CFe30(iter),CFe3(iter),t(iter),iFe2(iter));
+    k2 = dnFe3dt((CFe30(iter)+(1/2)*h*k1),(CFe3(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k1));
+    k3 = dnFe3dt((CFe30(iter)+(1/2)*h*k2),(CFe3(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k2));
+    k4 = dnFe3dt((CFe30(iter)+h*k3),(CFe3(iter)+h*k3),(t(iter)+h),(iFe2(iter)+h*k3));
+    CFe3(iter+1) = subplus(CFe3(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
     %S2O3
-    k1 = dnS2O3dt(CS2O30(iter),nS2O3(iter),t(iter),iAg(iter),iAu(iter),iPd(iter));
-    k2 = dnS2O3dt((CS2O30(iter)+(1/2)*h*k1),(nS2O3(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k1),(iAu(iter)+(1/2)*h*k1),(iPd(iter)+(1/2)*h*k1));
-    k3 = dnS2O3dt((CS2O30(iter)+(1/2)*h*k2),(nS2O3(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k2),(iAu(iter)+(1/2)*h*k2),(iPd(iter)+(1/2)*h*k2));
-    k4 = dnS2O3dt((CS2O30(iter)+h*k3),(nS2O3(iter)+h*k3),(t(iter)+h),(iAg(iter)+h*k3),(iAu(iter)+h*k3),(iPd(iter)+h*k3));
-    nS2O3(iter+1) = subplus(nS2O3(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    CS2O30(iter+1) = CS2O30(iter);%nPd(iter+1);
+    k1 = dnS2O3dt(CS2O30(iter),CS2O3(iter),t(iter),iAg(iter),iAu(iter),iPd(iter));
+    k2 = dnS2O3dt((CS2O30(iter)+(1/2)*h*k1),(CS2O3(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k1),(iAu(iter)+(1/2)*h*k1),(iPd(iter)+(1/2)*h*k1));
+    k3 = dnS2O3dt((CS2O30(iter)+(1/2)*h*k2),(CS2O3(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k2),(iAu(iter)+(1/2)*h*k2),(iPd(iter)+(1/2)*h*k2));
+    k4 = dnS2O3dt((CS2O30(iter)+h*k3),(CS2O3(iter)+h*k3),(t(iter)+h),(iAg(iter)+h*k3),(iAu(iter)+h*k3),(iPd(iter)+h*k3));
+    CS2O3(iter+1) = subplus(CS2O3(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
     %H
-    nH(iter+1) = nH(iter); % refine this, im assuming something constantly balances pH here (or the conc is so big it dont matta)
+    CH(iter+1) = CH(iter); % refine this, im assuming something constantly balances pH here (or the conc is so big it dont matta)
     %other variables to calc
     etaAn(iter+1) = eta(1);
     etaAg(iter+1) = eta(2);
     %additional processing equations
-    wAg(iter+1) = -(Acat*mmAg/F)*h*60*(sum(iAg)-iAg(end));
-    wAu(iter+1) = -(Acat*mmAu/F)*h*60*(sum(iAu)-iAu(end));
-    wPd(iter+1) = -(Acat*mmPd/(2*F))*h*60*(sum(iPd)-iPd(end));
+    wAg(iter+1) = -(Acat_elec*mmAg/F)*h*60*(sum(iAg)-iAg(end));
+    wAu(iter+1) = -(Acat_elec*mmAu/F)*h*60*(sum(iAu)-iAu(end));
+    wPd(iter+1) = -(Acat_elec*mmPd/(2*F))*h*60*(sum(iPd)-iPd(end));
 end
 t(iter+1)=h*(iter+1);
-CAg = nAgS2O32./V;
-CAu = nAuS2O32./V;
-CPd = nPdS2O34./V;
+CAg = nAgS2O32./V_elec;
+CAu = nAuS2O32./V_elec;
+CPd = nPdS2O34./V_elec;
 RemAg = CAg./CAg(1);
 RemAu = CAu./CAu(1);
 RemPd = CPd./CPd(1);
