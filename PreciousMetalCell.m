@@ -2,22 +2,22 @@ clear all
 tic
 %%%initial cell concs%%%
 %Corrosion
-CAgS2O320(1) = 0.10;
-CAuS2O320(1) = 0.05;
-CPdS2O340(1) = 0.0001;
+CAgS2O320(1) = eps;
+CAuS2O320(1) = eps;
+CPdS2O340(1) = eps;
 CH0(1) = 1e-10;
-CFe20(1) = 0.005;
-CFe30(1) = 0.001;
-CS2O30(1) = 0.05;
+CFe20(1) = eps;
+CFe30(1) = 0.05;
+CS2O30(1) = 0.5;
 COH0(1) = (1e-14)/CH0(1);
 %Electrowinning
-CAgS2O32(1) = 0.10;
-CAuS2O32(1) = 0.05;
-CPdS2O34(1) = 0.0001;
+CAgS2O32(1) = eps;
+CAuS2O32(1) = eps;
+CPdS2O34(1) = eps;
 CH(1) = 1e-10;
-CFe2(1) = 0.005;
-CFe3(1) = 0.001;
-CS2O3(1) = 0.05;
+CFe2(1) = 0.05;
+CFe3(1) = 0.05;
+CS2O3(1) = 0.5;
 COH(1) = (1e-14)/CH0(1);
 
 %%%Properties%%%
@@ -55,9 +55,9 @@ mmAu = 107.8682; %g/mol
 mmPd = 106.42; %g/mol
 
 %%%System parameters%%%
-Fin = 10; %L/s
+Fin = 0; %L/s
 Fout = Fin; %kept same for now, may want to make into different values to account for accumulation and controls
-tfinal = 72;
+tfinal = 2;
 %corrosion
 Ecorr(1) = 0; %initial guess for corrosion potential
 T_corr = 298.15;
@@ -126,14 +126,15 @@ for iter = 1:1:(tfinal/h)
     ErevAu_corr(iter) = 0.153 + (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAuS2O320(iter)));
     ErevPd_corr(iter) = 0.0862 + (Rgas*T_corr/(2*F))*log(((gamS2O3*(CS2O30(iter)))^4)/((gamAg*CPdS2O340(iter))));
     ErevH_corr(iter) = 0 + (Rgas*T_corr/F)*log((aH2^0.5)/(gamH*CH0(iter)));
-    
-    CorrosionFunc = @(Ecorr) A_corr*(i_BV((Ecorr-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr) + i_BV((Ecorr-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr) + i_BV((Ecorr-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr) + i_BV((Ecorr-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr) );
+    %
+    CorrosionFunc = @(Ecorr) A_corr*(i_BV((Ecorr-ErevAn_corr(iter)), iAn0, alphaAn, 1, T_corr)+i_BV((Ecorr-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr) + i_BV((Ecorr-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr) + i_BV((Ecorr-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr) + i_BV((Ecorr-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr) );
     Ecorr(iter) = fzero(CorrosionFunc,Ecorr(iter));
     Ecorr(iter+1) = Ecorr(iter); %setting up next initial guess
     iAg_corr(iter) = i_BV((Ecorr(iter)-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr);
     iAu_corr(iter) = i_BV((Ecorr(iter)-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr);
     iPd_corr(iter) = i_BV((Ecorr(iter)-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr);
     iFe2_corr(iter) = i_BV((Ecorr(iter)-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr);
+    iAn_corr(iter) = i_BV((Ecorr(iter)-ErevAn_corr(iter)), iAn0, alphaAn, 1, T_corr);
     
     %Ag
     k1 = dnAgdt(CAgS2O32(iter),CAgS2O320(iter),t(iter),iAg_corr(iter));
@@ -260,25 +261,35 @@ t(iter+1)=h*(iter+1);
 CAg = nAgS2O32./V_elec;
 CAu = nAuS2O32./V_elec;
 CPd = nPdS2O34./V_elec;
-RemAg = CAg./CAg(1);
-RemAu = CAu./CAu(1);
-RemPd = CPd./CPd(1);
-subplot(2,2,1)
-plot(t(1:end-1),Vappdiff)
-title('Vapp Error')
-subplot(2,2,2)
-plot(t(1:end-1),Idiff)
-title('Current error')
-subplot(2,2,3)
-plot(t,RemAg,t,RemAu,t,RemPd)
+RemAg = CAgS2O32./CAgS2O32(1);
+RemAu = CAuS2O32./CAuS2O32(1);
+RemPd = CPdS2O34./CPdS2O34(1);
+%subplot(2,2,1)
+%plot(t(1:end-1),Vappdiff)
+%title('Vapp Error')
+%subplot(2,2,2)
+%plot(t(1:end-1),Idiff)
+%title('Current error')
+%subplot(2,2,3)
+%plot(t,RemAg,t,RemAu,t,RemPd)
+%xlabel('Time (h)')
+%ylabel('% consumption from initial')
+%title('Remaining in solution over time, step size 1 min')
+%legend('Silver','Gold','Palladium')
+%subplot(2,2,4)
+%plot(t,wAg,t,wAu,t,wPd)
+%xlabel('Time (h)')
+%ylabel('Total amount deposited (g)')
+%title('Deposited solution over time, step size 1 min')
+%legend('Silver','Gold','Palladium')
+disp(sum(Vappdiff))
+disp(sum(Idiff))
+subplot(2,1,1)
+plot(t(1:end-1),iAg_corr,t(1:end-1),iAu_corr,t(1:end-1),iPd_corr,t(1:end-1),iAn_corr,t(1:end-1),iFe2_corr)
+legend('Silver','Gold','Palladium','Anode','Iron')
 xlabel('Time (h)')
-ylabel('% consumption from initial')
-title('Remaining in solution over time, step size 1 min')
-legend('Silver','Gold','Palladium')
-subplot(2,2,4)
-plot(t,wAg,t,wAu,t,wPd)
-xlabel('Time (h)')
-ylabel('Total amount deposited (g)')
-title('Deposited solution over time, step size 1 min')
-legend('Silver','Gold','Palladium')
+ylabel('Corrosion currents (A/m2)')
+subplot(2,1,2)
+plot(t,CAgS2O320,t,CAuS2O320,t,CPdS2O340,t,CS2O30,t,CFe20,t,CFe30)
+legend('Silver','Gold','Palladium','Thiosulfate','Iron(II)','Iron(III)')
 toc
