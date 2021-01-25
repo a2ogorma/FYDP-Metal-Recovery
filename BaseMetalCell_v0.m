@@ -6,7 +6,6 @@
 clear variables
 
 % system parameters
-global temp pres vol_cell vol_bed Q S_an S_cat V_app r_particles;
 temp = 298; %K
 pres = 1; % atm
 vol_cell = 250; %L
@@ -43,4 +42,5 @@ Ci = [Ci_Cu2_cell Ci_Fe2_cell Ci_Fe3_cell Ci_H_cell Ci_Cl_cell Ci_Cu2_bed Ci_Fe2
 %solve conc profiles
 tspan = [0 10];
 options = odeset('NonNegative', 1:10);
-[t, C] = ode45(@ion_balance, tspan, Ci, options);
+balance_solver = @(t, C) ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat, V_app, r_particles);
+[t, C] = ode45(balance_solver, tspan, Ci, options);
