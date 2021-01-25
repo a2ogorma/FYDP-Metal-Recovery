@@ -75,14 +75,14 @@ function dC_dt = ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat
     
     %Calculate concentration balances
     dC_dt = zeros(size(C));
-    dC_dt(1) = ((C(6)-C(1))*Q + I_Cu*F/z_Cu)/vol_cell;
-    dC_dt(2) = ((C(7)-C(2))*Q - I_Fe*F/z_Fe)/vol_cell;
-    dC_dt(3) = ((C(8)-C(3))*Q + I_Fe*F/z_Fe)/vol_cell;
+    dC_dt(1) = ((C(6)-C(1))*Q + I_Cu/F/z_Cu)/vol_cell;
+    dC_dt(2) = ((C(7)-C(2))*Q - I_Fe/F/z_Fe)/vol_cell;
+    dC_dt(3) = ((C(8)-C(3))*Q + I_Fe/F/z_Fe)/vol_cell;
     dC_dt(4) = (C(9)-C(4))*Q/vol_cell;
     dC_dt(5) = (C(10)-C(5))*Q/vol_cell;
-    dC_dt(6) = ((C(1)-C(6))*Q + I_corr*F/z_Cu)/vol_bed;
-    dC_dt(7) = ((C(2)-C(7))*Q + I_corr*F/z_Fe)/vol_bed;
-    dC_dt(8) = ((C(3)-C(8))*Q - I_corr*F/z_Fe)/vol_bed;
+    dC_dt(6) = ((C(1)-C(6))*Q + I_corr/F/z_Cu)/vol_bed;
+    dC_dt(7) = ((C(2)-C(7))*Q + I_corr/F/z_Fe)/vol_bed;
+    dC_dt(8) = ((C(3)-C(8))*Q - I_corr/F/z_Fe)/vol_bed;
     dC_dt(9) = (C(4)-C(9))*Q/vol_bed;
     dC_dt(10) = (C(5)-C(10))*Q/vol_bed;
 end

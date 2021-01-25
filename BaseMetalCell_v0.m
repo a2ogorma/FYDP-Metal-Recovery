@@ -51,7 +51,7 @@ l = 100; %cm
 %Applied Voltage (potentiostat)
 V_app = 12; %V
 %Extraction vessel parameters
-vol_bed = 0.0002; %m3 (Initial) volume of bed holding the particles assuming the bed is completly full.
+vol_bed = 0.2; %m3 (Initial) volume of bed holding the particles assuming the bed is completly full.
 r_particles = 0.001; %m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
 
 %Surface area calculation for corrosion
@@ -69,7 +69,7 @@ Ci_Cl_cell = 2*(Ci_Cu2_cell+Ci_Fe2_cell)+Ci_H_cell; %Calculation to ensure
 %electrolyte has net neutral charge
 
 %Bed concentrations (extraction)
-Ci_Cu2_bed = 0.2;
+Ci_Cu2_bed = eps;%0.2;
 Ci_Fe2_bed = 0.5;
 Ci_Fe3_bed = 0.001;
 Ci_H_bed = 0;
@@ -80,10 +80,10 @@ Ci_Cl_bed = 2*(Ci_Cu2_bed+Ci_Fe2_bed)+Ci_H_bed;
 Ci = [Ci_Cu2_cell Ci_Fe2_cell Ci_Fe3_cell Ci_H_cell Ci_Cl_cell Ci_Cu2_bed Ci_Fe2_bed Ci_Fe3_bed Ci_H_bed Ci_Cl_bed];
 
 %solve conc profiles
-tspan = [0 50];
+tspan = [0 259200];
 options = odeset('NonNegative',1:10);
 balance_solver = @(t, C) ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat, V_app, r_particles, l, A_cell);
-[t, C] = ode15s(balance_solver, tspan, Ci, options);
+[t, C] = ode45(balance_solver, tspan, Ci, options);
 
 %backcalculate currents/potentials
 Erev_Cu_cell = zeros(size(t));
