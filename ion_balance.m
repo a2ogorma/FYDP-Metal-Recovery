@@ -1,4 +1,4 @@
-function dC_dt = ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat, V_app, r_particles)
+function dC_dt = ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat, V_app, r_particles, l, A_cell)
     %t = time span (s)
     %C = ionic concentration array [C_Cu2+_cell C_Fe2+_cell C_Fe3+_cell C_H+_cell C_Cl-_cell 
     %C_Cu2+_bed C_Fe2+_bed C_Fe3+_bed C_H+_bed C_Cl-_bed] (mol/L)
@@ -51,14 +51,15 @@ function dC_dt = ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat
     Erev_Fe_bed = Eo_Fe - R*temp/(z_Fe*F)*log(gamma_Fe2*max(C(7),eps)/gamma_Fe3*max(C(8),eps));
     
     %resistance calculation for IR drops
-    r_sol = C(1)*lamda_Cu2 + C(2)*lamda_Fe2 + C(3)*lamda_Fe3 + C(4)*lamda_H + C(5)*lamda_Cl;
+    kappa = 1000*(C(1)*lamda_Cu2 + C(2)*lamda_Fe2 + C(3)*lamda_Fe3 + C(4)*lamda_H + C(5)*lamda_Cl);
+    r_sol = l/A_cell/kappa*100;
     r_hardware = 1; %ohms
     
     %solve cell currents and electrode potentials
     solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol, r_hardware, Erev_Fe_cell, Erev_Cu_cell, S_an, S_cat, temp);
     %initial guesses [I_an, E_an, E_cat]
     x0 = [1, 0.2, -0.2];
-    %options = optimset('Display','off');
+    options = optimset('Display','off');
     x = fsolve(solver, x0, options);
     I_an = x(1);
     E_an = x(2);
