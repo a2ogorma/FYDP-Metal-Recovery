@@ -58,7 +58,8 @@ function dC_dt = ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat
     solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol, r_hardware, Erev_Fe_cell, Erev_Cu_cell, S_an, S_cat, temp);
     %initial guesses [I_an, E_an, E_cat]
     x0 = [1, 0.2, -0.2];
-    x = fsolve(solver, x0);
+    %options = optimset('Display','off');
+    x = fsolve(solver, x0, options);
     I_an = x(1);
     E_an = x(2);
     E_cat = x(3);

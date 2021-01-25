@@ -6,9 +6,9 @@ CAgS2O320(1) = eps;
 CAuS2O320(1) = eps;
 CPdS2O340(1) = eps;
 CH0(1) = 1e-10;
-CFe20(1) = eps;
-CFe30(1) = 0.05;
-CS2O30(1) = 0.5;
+CFe20(1) = 0.005;
+CFe30(1) = eps;
+CS2O30(1) = 0.01;
 COH0(1) = (1e-14)/CH0(1);
 %Electrowinning
 CAgS2O32(1) = eps;
@@ -63,7 +63,7 @@ Ecorr(1) = 0; %initial guess for corrosion potential
 T_corr = 298.15;
 V_corr = 100; %L
 cursivel_corr = 10; %m, characteristic distance
-A_corr = 10;%m2, area of uniform corrosion
+A_corr = 100;%m2, area of uniform corrosion
 Rhardware_corr = 0; %set to 0 for now before i do something with it
 %electrowinning
 Vapp = 8; %V
@@ -122,10 +122,10 @@ for iter = 1:1:(tfinal/h)
     %%%Corrosion%%%
     ErevAn_corr(iter) = 1.23 - (Rgas*T_corr/(4*F))*log(aO2*(gamH*CH0(iter))^4);
     ErevFe_corr(iter) = 0.77 - (Rgas*T_corr/F)*log(gamFe3*(CFe20(iter))/(gamFe2*(CFe30(iter))));
-    ErevAg_corr(iter) = 0.060113 + (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAgS2O320(iter)));
-    ErevAu_corr(iter) = 0.153 + (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAuS2O320(iter)));
-    ErevPd_corr(iter) = 0.0862 + (Rgas*T_corr/(2*F))*log(((gamS2O3*(CS2O30(iter)))^4)/((gamAg*CPdS2O340(iter))));
-    ErevH_corr(iter) = 0 + (Rgas*T_corr/F)*log((aH2^0.5)/(gamH*CH0(iter)));
+    ErevAg_corr(iter) = 0.060113 - (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAgS2O320(iter)));
+    ErevAu_corr(iter) = 0.153 - (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAuS2O320(iter)));
+    ErevPd_corr(iter) = 0.0862 - (Rgas*T_corr/(2*F))*log(((gamS2O3*(CS2O30(iter)))^4)/((gamAg*CPdS2O340(iter))));
+    ErevH_corr(iter) = 0 - (Rgas*T_corr/F)*log((aH2^0.5)/(gamH*CH0(iter)));
     %
     CorrosionFunc = @(Ecorr) A_corr*(i_BV((Ecorr-ErevAn_corr(iter)), iAn0, alphaAn, 1, T_corr)+i_BV((Ecorr-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr) + i_BV((Ecorr-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr) + i_BV((Ecorr-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr) + i_BV((Ecorr-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr) );
     Ecorr(iter) = fzero(CorrosionFunc,Ecorr(iter));
