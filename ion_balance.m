@@ -7,7 +7,7 @@ function dC_dt = ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat
     global R F;
     R = 8.314; %J/(mol K)
     F = 96485.3329; %C/mol
-    
+    t
     %{
         Reactions
         Anodic: Fe2+ --> Fe3+ + e-
@@ -98,7 +98,7 @@ function Y = cell_solver(I_an, E_an, E_cat, V_app, r_sol, r_hardware, Erev_Fe, E
 end
 
 function [func] = cor(Ecorr, Erev, temp)
-  %1 = Cu, 2= Fe
+  %1 = Cu, 2 = Fe
   global i0_Cu i0_Fe alpha_Cu alpha_Fe z_Cu z_Fe
   i_Cu = i_BV(Ecorr-Erev(1), i0_Cu, alpha_Cu, z_Cu, temp);
   i_Fe = i_BV(Ecorr-Erev(2), i0_Fe, alpha_Fe, z_Fe, temp);

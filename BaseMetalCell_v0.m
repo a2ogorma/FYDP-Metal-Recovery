@@ -51,7 +51,7 @@ l = 100; %cm
 %Applied Voltage (potentiostat)
 V_app = 12; %V
 %Extraction vessel parameters
-vol_bed = 0.2; %m3 (Initial) volume of bed holding the particles assuming the bed is completly full.
+vol_bed = 0.0002; %m3 (Initial) volume of bed holding the particles assuming the bed is completly full.
 r_particles = 0.001; %m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
 
 %Surface area calculation for corrosion
@@ -81,8 +81,9 @@ Ci = [Ci_Cu2_cell Ci_Fe2_cell Ci_Fe3_cell Ci_H_cell Ci_Cl_cell Ci_Cu2_bed Ci_Fe2
 
 %solve conc profiles
 tspan = [0 50];
+options = odeset('NonNegative',1:10);
 balance_solver = @(t, C) ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat, V_app, r_particles, l, A_cell);
-[t, C] = ode45(balance_solver, tspan, Ci);
+[t, C] = ode15s(balance_solver, tspan, Ci, options);
 
 %backcalculate currents/potentials
 Erev_Cu_cell = zeros(size(t));
@@ -99,6 +100,7 @@ E_corr = zeros(size(t));
 r_sol = zeros(size(t));
 
 for j = 1:1:length(t)
+    disp(t(j))
     %Nernst Potentials
     Erev_Cu_cell(j) = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma_Cu2*max(C(j,1),eps)));
     Erev_Fe_cell(j) = Eo_Fe - R*temp/(z_Fe*F)*log(gamma_Fe2*max(C(j,2),eps)/gamma_Fe3*max(C(j,3),eps));
@@ -163,9 +165,11 @@ xlabel('Time (s)')
 ylabel('Concentrations (M)')
 title('Chloride')
 subplot(3,2,6)
-plot(t,I_corr)
+plot(t,I_corr,t,I_Cu,t,I_Fe)
 xlabel('Time (s)')
-ylabel('Corrosion Current (A)')
+ylabel('Current (A)')
+title('Currents')
+legend('Corr','CopperCell','IronCell')
 function Y = cell_solver(I_an, E_an, E_cat, V_app, r_sol, r_hardware, Erev_Fe, Erev_Cu, S_an, S_cat, temp)
     %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
     global i0_Fe alpha_Fe z_Fe i0_Cu alpha_Cu z_Cu
