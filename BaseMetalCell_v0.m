@@ -66,13 +66,14 @@ l = 100; %cm
 %Applied Voltage (potentiostat)
 V_app = 12; %V
 %Extraction vessel parameters
-vol_bed = 0.2; %m3 (Initial) volume of bed holding the particles assuming the bed is completly full.
+vol_bed = 200; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
 r_particles = 0.001; %m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
+tfinal = 12; %s
 
 %Surface area calculation for corrosion
 SSA = 3/r_particles; %m2/m3 Specific Surface area of spheres.
 packing_density = 0.6; %m3/m3 Loose packing density of equal sized spheres. Close packing density = 0.64.
-S_corr = vol_bed*packing_density*SSA; %m2 Total surface area of spheres in bed.
+S_corr = 0.001*vol_bed*packing_density*SSA; %m2 Total surface area of spheres in bed.
 
 %initial concentrations in mol/L
 %Cell Concentrations (recovery)
@@ -99,7 +100,7 @@ Ci_Cl_bed = 2*(Ci_Cu2_bed+Ci_Fe2_bed)+Ci_H_bed;
 Ci = [Ci_Cu2_cell Ci_Fe2_cell Ci_Fe3_cell Ci_Sn2_cell Ci_Ni2_cell Ci_H_cell Ci_Cl_cell Ci_Cu2_bed Ci_Fe2_bed Ci_Fe3_bed Ci_Sn2_bed Ci_Ni2_bed Ci_H_bed Ci_Cl_bed];
 
 %solve conc profiles
-tspan = [0 12];
+tspan = [0 tfinal];
 options = odeset('NonNegative',1:10);
 balance_solver = @(t, C) ion_balance(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat, V_app, r_particles, l, A_cell);
 [t, C] = ode15s(balance_solver, tspan, Ci, options);
