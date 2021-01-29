@@ -1,295 +1,258 @@
-clear all
-tic
-%%%initial cell concs%%%
-%Corrosion
-CAgS2O320(1) = eps;
-CAuS2O320(1) = eps;
-CPdS2O340(1) = eps;
-CH0(1) = 1e-10;
-CFe20(1) = 0.005;
-CFe30(1) = eps;
-CS2O30(1) = 0.01;
-COH0(1) = (1e-14)/CH0(1);
-%Electrowinning
-CAgS2O32(1) = eps;
-CAuS2O32(1) = eps;
-CPdS2O34(1) = eps;
-CH(1) = 1e-10;
-CFe2(1) = 0.05;
-CFe3(1) = 0.05;
-CS2O3(1) = 0.5;
-COH(1) = (1e-14)/CH0(1);
+%{
+	Continuous stirred tank model for base metal extraction/recovery cell
+    Using ode45
+	To Add: Applied Voltage calc. Non-constant volume?
+%} 
+clear variables
 
-%%%Properties%%%
-%conductivity values, check on this (S m2 /mol)
-gammaAg = 61.90e-4;
-gammaAu = 4.1e7;
-gammaPd = 0.1;
-gammaH = 349.81e-4;
-gammaFe2 = 0;%easy update
-gammaFe3 = 0;%easy update
-gammaOH = 0;%easy update
-%note many conductivity values are missing due to lack of immediately
-%available data. This is sorta ok because as it is this makes a more
-%conservative (aka worse/higher) resistance estimate, and it is not
-%expected that the complexes would contribute as much to the system.
-%Ideally, thiosulfate conductivity would be found which would allow for
-%estimation of it if they werent in their complexes.
+%universal constants
+global R F;
+R = 8.314; %J/(mol K)
+F = 96485.3329; %C/mol
 
-%divergence from ideality values (check on this shit too but low
-%priority)... something about fugacity comes to mind???
-gamAg = 1;%assume all ideal unless proven otherwise
-gamAu = 1;
-gamPd = 1;
-gamH = 1;
-gamFe2 = 1;
-gamFe3 = 1;
-gamOH = 1;
-gamS2O3 = 1;
+%Electrochemical Constants
+% # of electrons in rxn
+global z_Au z_Fe z_Ag z_Pd z_An z_H
+z_Au = 1;
+z_Fe = 1;
+z_Ag = 1;
+z_Pd = 2;
+z_An = 4;
+z_H = 1;
+% exchange current densities
+global i0_Au i0_Fe i0_Ag i0_Pd i0_An i0_H
+i0_An = 1E-12; %A/m2
+i0_Fe = 5E-6;%from that reference
+i0_Pd = 7.3e-9; %A/m2, from https://link-springer-com.proxy.lib.uwaterloo.ca/article/10.1007/s10800-007-9434-x - verify this link applies
+i0_Au = 2E-8; %A/m2, value of dissolution including Na2S in dissolution reaction from https://link-springer-com.proxy.lib.uwaterloo.ca/article/10.1134/S1023193506040021, converting A/cm2 to A/m2 
+i0_Ag = 4e-9; %using a mix of a few from that reference
+i0_H = 1E-10; %need to identify suitable electrode to help limit hydrogen evolution. From volcano plot in class, likely copper, gold or silver electrodes
 
-%Universal constants (keep em handy)
-F = 96485; %C/mol
-Rgas = 8.3145; %J/molK
-mmAg = 196.96657; %g/mol
-mmAu = 107.8682; %g/mol
-mmPd = 106.42; %g/mol
+% charge transfer coefficients
+global alpha_Au alpha_Fe alpha_Ag alpha_Pd alpha_An alpha_H
+alpha_Au = 0.5;
+alpha_Fe = 0.5;
+alpha_Ag = 0.5;
+alpha_Pd = 0.5;
+alpha_An = 0.5;
+alpha_H = 0.5;
+% Standard half reaction potentials vs. SHE @ 298 K, 1 atm, 1 M 
+global Eo_Au Eo_Fe Eo_Ag Eo_Pd Eo_An Eo_H
+Eo_Au = 0.153; %V
+Eo_Fe = 0.77; %V
+Eo_Ag = 0.060113; %V
+Eo_Pd = 0.0862; %V
+Eo_An = 1.23; %V
+Eo_H = 0; %V
+%activity coefficients of ions in solution%assume all ideal unless proven otherwise
+global gamma_Au gamma_Fe2 gamma_Fe3 gamma_Ag gamma_Pd gamma_OH gamma_H gamma_S2O3
+gamma_Au = 1;
+gamma_Fe2 = 1;
+gamma_Fe3 = 1;
+gamma_Ag = 1;
+gamma_Pd = 1;
+gamma_OH = 1;
+gamma_H = 1;
+gamma_S2O3 = 1;
+aH2 = 0.0001; %atm
+aO2 = 0.21;%atm
+%Lamda infinity values NEED source for iron, tin, nickel rest are from ChE 331 notes
+lamda_H = 349.81; %S m^2/mol
+lamda_Fe2 = 100; %S m^2/mol
+lamda_Fe3 = 100; %S m^2/mol
+lamda_S2O3 = 100; %S m^2/mol
+lamda_Ag = 61.90e-4;
+lamda_Au = 4.1e7;
+lamda_Pd = 0.1;
+lamda_OH = 0;%easy update
 
-%%%System parameters%%%
-Fin = 0; %L/s
-Fout = Fin; %kept same for now, may want to make into different values to account for accumulation and controls
-tfinal = 2;
-%corrosion
-Ecorr(1) = 0; %initial guess for corrosion potential
-T_corr = 298.15;
-V_corr = 100; %L
-cursivel_corr = 10; %m, characteristic distance
-A_corr = 100;%m2, area of uniform corrosion
-Rhardware_corr = 0; %set to 0 for now before i do something with it
-%electrowinning
-Vapp = 8; %V
-T_elec = 298.15; %K, we can play around with this but if we want to vary this kinetically then I oop
-V_elec = 100; %L
-cursivel_elec = 10; %m, characteristic distance
-Acat_elec = 10; %m2, area
-Aan_elec = 10; %m2, area
-Rhardware_elec = 0; %set to 0 for now before i do something with it
+% system parameters
+temp = 298; %K
+pres = 1; % atm
+vol_cell = 250; %L
+Q = 5; % L/s (flowrate)
+%Electrode areas
+S_cat = 500; %cm^2
+S_an = 500; %cm^2
+%Cross sectional area of cell
+A_cell = 500; %cm^2
+%Length b/w electrodes
+l = 100; %cm
+%Applied Voltage (potentiostat)
+V_app = 12; %V
+%Extraction vessel parameters
+vol_bed = 200; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
+r_particles = 0.001; %m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
+tfinal = 12; %s
 
-%setting up initial conc in cell
-nAgS2O32(1) = CAgS2O320(1)*V_elec; % moles of silver remaining
-nAuS2O32(1) = CAuS2O320(1)*V_elec; % moles
-nPdS2O34(1) = CPdS2O340(1)*V_elec; % moles
-nS2O3(1) = CS2O30(1)*V_elec;
-nFe2(1) = CFe20(1)*V_elec;
-nFe3(1) = CFe30(1)*V_elec;
-nH(1) = CH0(1)*V_elec; % moles
-nOH(1) = COH0(1)*V_elec;
-aO2 = 0.21;%atm, its always this cause atmosphere,but maybe we wanna pressurize
-aH2 = 0.0001;%dunnno what this should be
+%Surface area calculation for corrosion
+SSA = 3/r_particles; %m2/m3 Specific Surface area of spheres.
+packing_density = 0.6; %m3/m3 Loose packing density of equal sized spheres. Close packing density = 0.64.
+S_corr = 0.001*vol_bed*packing_density*SSA; %m2 Total surface area of spheres in bed.
 
-%assume well mixed, or bulk and surface concentrations are the same
-alphaAn = 0.5;
-alphaFe = 0.5;
-alphaAg = 0.5; %base assumption as most systems are close to this number
-alphaAu = 0.5; %base assumption as most systems are close to this number
-alphaPd = 0.5; %base assumption as most systems are close to this number
-alphaH = 0.5;
+%initial concentrations in mol/L
+%Cell Concentrations (recovery)
+Ci_Au_cell = eps;
+Ci_Fe2_cell = 0.05;
+Ci_Fe3_cell = 0.05;
+Ci_Ag_cell = eps;
+Ci_Pd_cell = eps;
+Ci_H_cell = 1e-10;
+Ci_S2O3_cell = 0.01;
 
-iAn0 = 1E-12; %A/m2
-iFe0 = 10^-6.8;%from course notes using palladium electrode, E-4 used to convert from A/cm2 to A/m2
-iAg0 = 7.3e-9; %A/m2, from https://link-springer-com.proxy.lib.uwaterloo.ca/article/10.1007/s10800-007-9434-x - verify this link applies
-iAu0 = 2E-8; %A/m2, value of dissolution including Na2S in dissolution reaction from https://link-springer-com.proxy.lib.uwaterloo.ca/article/10.1134/S1023193506040021, converting A/cm2 to A/m2 
-iPd0 = 4e-9; %using a mix of a few from that reference
-iH0 = 1E-10; %need to identify suitable electrode to help limit hydrogen evolution. From volcano plot in class, likely copper, gold or silver electrodes
+%Bed concentrations (extraction)
+Ci_Au_bed = eps;%0.2;
+Ci_Fe2_bed = 0.5;
+Ci_Fe3_bed = 0.001;
+Ci_Ag_bed = 0.001;
+Ci_Pd_bed = 0.001;
+Ci_H_bed = 1e-10;
+Ci_S2O3_bed = 0.5;
 
-etaAn(1) = 0.8;%initial guesses for overpot
-etaAg(1) = -0.8;%initial guesses for overpot
+%initializing concentrations [C_Cu2+_cell C_Fe2+_cell C_Fe3+_cell C_H+_cell C_Cl-_cell 
+%C_Cu2+_bed C_Fe2+_bed C_Fe3+_bed C_H+_bed C_Cl-_bed] (mol/L)
+Ci = [Ci_Au_cell Ci_Fe2_cell Ci_Fe3_cell Ci_Ag_cell Ci_Pd_cell Ci_H_cell Ci_S2O3_cell Ci_Au_bed Ci_Fe2_bed Ci_Fe3_bed Ci_Ag_bed Ci_Pd_bed Ci_H_bed Ci_S2O3_bed];
 
-%electrochemical equations and relations
-dnAgdt = @(CAg0,CAg,t,iAg) CAg0*Fin-CAg*Fout+(1/F)*iAg*Acat_elec;
-dnAudt = @(CAu0,CAu,t,iAu) CAu0*Fin-CAu*Fout+(1/F)*iAu*Acat_elec;
-dnPddt = @(CPd0,CPd,t,iPd) CPd0*Fin-CPd*Fout+(1/(2*F))*iPd*Acat_elec;
-dnFe2dt = @(CFe20,CFe2,t,iFe2) CFe20*Fin-CFe2*Fout+(1/F)*iFe2*Aan_elec;
-dnFe3dt = @(CFe30,CFe3,t,iFe2) CFe30*Fin-CFe3*Fout-(1/F)*iFe2*Aan_elec;
-dnS2O3dt = @(CS2O30,CS2O3,t,iAg,iAu,iPd) CS2O30*Fin-CS2O3*Fout-(2/F)*iAg*Acat_elec-(2/F)*iAu*Acat_elec-(4/(2*F))*iPd*Acat_elec;
+%solve conc profiles
+tspan = [0 tfinal];
+options = odeset('NonNegative',1:10);
+balance_solver = @(t, C) ion_balance_precious(t, C, temp, pres, vol_cell, vol_bed, Q, S_an, S_cat, V_app, r_particles, l, A_cell);
+[t, C] = ode15s(balance_solver, tspan, Ci, options);
 
-%modelling method vars
-t(1) = 0; %time initial
-h = 1/60; %step size, basically does a minute of time
+%backcalculate currents/potentials
+Erev_Au_cell = zeros(size(t));
+Erev_Au_bed = zeros(size(t));
+Erev_Fe_cell = zeros(size(t));
+Erev_Fe_bed = zeros(size(t));
+Erev_Ag_cell = zeros(size(t));
+Erev_Ag_bed = zeros(size(t));
+Erev_Pd_cell = zeros(size(t));
+Erev_Pd_bed = zeros(size(t));
+I_an = zeros(size(t));
+E_an = zeros(size(t));
+E_cat = zeros(size(t));
+I_Fe = zeros(size(t));
+I_corr = zeros(size(t));
+E_corr = zeros(size(t));
+r_sol = zeros(size(t));
 
-
-for iter = 1:1:(tfinal/h)
-    t(iter) = h*iter;
-    %%%Corrosion%%%
-    ErevAn_corr(iter) = 1.23 - (Rgas*T_corr/(4*F))*log(aO2*(gamH*CH0(iter))^4);
-    ErevFe_corr(iter) = 0.77 - (Rgas*T_corr/F)*log(gamFe3*(CFe20(iter))/(gamFe2*(CFe30(iter))));
-    ErevAg_corr(iter) = 0.060113 - (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAgS2O320(iter)));
-    ErevAu_corr(iter) = 0.153 - (Rgas*T_corr/(F))*log(((gamS2O3*(CS2O30(iter)))^2)/(gamAg*CAuS2O320(iter)));
-    ErevPd_corr(iter) = 0.0862 - (Rgas*T_corr/(2*F))*log(((gamS2O3*(CS2O30(iter)))^4)/((gamAg*CPdS2O340(iter))));
-    ErevH_corr(iter) = 0 - (Rgas*T_corr/F)*log((aH2^0.5)/(gamH*CH0(iter)));
-    %
-    CorrosionFunc = @(Ecorr) A_corr*(i_BV((Ecorr-ErevAn_corr(iter)), iAn0, alphaAn, 1, T_corr)+i_BV((Ecorr-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr) + i_BV((Ecorr-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr) + i_BV((Ecorr-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr) + i_BV((Ecorr-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr) );
-    Ecorr(iter) = fzero(CorrosionFunc,Ecorr(iter));
-    Ecorr(iter+1) = Ecorr(iter); %setting up next initial guess
-    iAg_corr(iter) = i_BV((Ecorr(iter)-ErevAg_corr(iter)), iAg0, alphaAg, 1, T_corr);
-    iAu_corr(iter) = i_BV((Ecorr(iter)-ErevAu_corr(iter)), iAu0, alphaAu, 1, T_corr);
-    iPd_corr(iter) = i_BV((Ecorr(iter)-ErevPd_corr(iter)), iPd0, alphaPd, 2, T_corr);
-    iFe2_corr(iter) = i_BV((Ecorr(iter)-ErevFe_corr(iter)), iFe0, alphaFe, 1, T_corr);
-    iAn_corr(iter) = i_BV((Ecorr(iter)-ErevAn_corr(iter)), iAn0, alphaAn, 1, T_corr);
+for j = 1:1:length(t)
+    disp(t(j))
+    %Nernst Potentials
+    Erev_Au_cell(j) = Eo_Au - R*temp/(z_Au*F)*log((gamma_S2O3*max(C(j,6),eps))^2/(gamma_Au*max(C(j,1),eps)));
+    Erev_Fe_cell(j) = Eo_Fe - R*temp/(z_Fe*F)*log(gamma_Fe2*max(C(j,2),eps)/gamma_Fe3*max(C(j,3),eps));
+    Erev_Ag_cell(j) = Eo_Ag - R*temp/(z_Ag*F)*log((gamma_S2O3*max(C(j,6),eps))^2/(gamma_Ag*max(C(j,4),eps)));
+    Erev_Pd_cell(j) = Eo_Pd - R*temp/(z_Pd*F)*log((gamma_S2O3*max(C(j,6),eps))^4/(gamma_Pd*max(C(j,5),eps)));
+    Erev_An_cell(j) = Eo_An - R*temp/(z_An*F)*log((aO2*(gamma_H*max(C(j,7),eps))^4));
+    Erev_H_cell(j) = Eo_H - R*temp/(z_H*F)*log(aH2^0.5/(gamma_H*max(C(j,7),eps)));
     
-    %Ag
-    k1 = dnAgdt(CAgS2O32(iter),CAgS2O320(iter),t(iter),iAg_corr(iter));
-    k2 = dnAgdt((CAgS2O32(iter)+(1/2)*h*k1),(CAgS2O320(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k1));
-    k3 = dnAgdt((CAgS2O32(iter)+(1/2)*h*k2),(CAgS2O320(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k2));
-    k4 = dnAgdt((CAgS2O32(iter)+h*k3),(CAgS2O320(iter)+h*k3),(t(iter)+h),(iAg_corr(iter)+h*k3));
-    CAgS2O320(iter+1) = subplus(CAgS2O320(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Au
-    k1 = dnAudt(CAuS2O32(iter),CAuS2O320(iter),t(iter),iAu_corr(iter));
-    k2 = dnAudt((CAuS2O32(iter)+(1/2)*h*k1),(CAuS2O320(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAu_corr(iter)+(1/2)*h*k1));
-    k3 = dnAudt((CAuS2O32(iter)+(1/2)*h*k2),(CAuS2O320(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAu_corr(iter)+(1/2)*h*k2));
-    k4 = dnAudt((CAuS2O32(iter)+h*k3),(CAuS2O320(iter)+h*k3),(t(iter)+h),(iAu_corr(iter)+h*k3));
-    CAuS2O320(iter+1) = subplus(CAuS2O320(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Pd
-    k1 = dnPddt(CPdS2O34(iter),CPdS2O340(iter),t(iter),iPd_corr(iter));
-    k2 = dnPddt((CPdS2O34(iter)+(1/2)*h*k1),(CPdS2O340(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iPd_corr(iter)+(1/2)*h*k1));
-    k3 = dnPddt((CPdS2O34(iter)+(1/2)*h*k2),(CPdS2O340(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iPd_corr(iter)+(1/2)*h*k2));
-    k4 = dnPddt((CPdS2O34(iter)+h*k3),(CPdS2O340(iter)+h*k3),(t(iter)+h),(iPd_corr(iter)+h*k3));
-    CPdS2O340(iter+1) = subplus(CPdS2O340(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Fe2
-    k1 = dnFe2dt(CFe2(iter),CFe20(iter),t(iter),iFe2_corr(iter));
-    k2 = dnFe2dt((CFe2(iter)+(1/2)*h*k1),(CFe20(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k1));
-    k3 = dnFe2dt((CFe2(iter)+(1/2)*h*k2),(CFe20(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k2));
-    k4 = dnFe2dt((CFe2(iter)+h*k3),(CFe20(iter)+h*k3),(t(iter)+h),(iFe2_corr(iter)+h*k3));
-    CFe20(iter+1) = subplus(CFe20(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Fe3
-    k1 = dnFe3dt(CFe3(iter),CFe30(iter),t(iter),iFe2_corr(iter));
-    k2 = dnFe3dt((CFe3(iter)+(1/2)*h*k1),(CFe30(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k1));
-    k3 = dnFe3dt((CFe3(iter)+(1/2)*h*k2),(CFe30(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2_corr(iter)+(1/2)*h*k2));
-    k4 = dnFe3dt((CFe3(iter)+h*k3),(CFe30(iter)+h*k3),(t(iter)+h),(iFe2_corr(iter)+h*k3));
-    CFe30(iter+1) = subplus(CFe30(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %S2O3
-    k1 = dnS2O3dt(CS2O3(iter),CS2O30(iter),t(iter),iAg_corr(iter),iAu_corr(iter),iPd_corr(iter));
-    k2 = dnS2O3dt((CS2O3(iter)+(1/2)*h*k1),(CS2O30(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k1),(iAu_corr(iter)+(1/2)*h*k1),(iPd_corr(iter)+(1/2)*h*k1));
-    k3 = dnS2O3dt((CS2O3(iter)+(1/2)*h*k2),(CS2O30(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg_corr(iter)+(1/2)*h*k2),(iAu_corr(iter)+(1/2)*h*k2),(iPd_corr(iter)+(1/2)*h*k2));
-    k4 = dnS2O3dt((CS2O3(iter)+h*k3),(CS2O30(iter)+h*k3),(t(iter)+h),(iAg_corr(iter)+h*k3),(iAu_corr(iter)+h*k3),(iPd_corr(iter)+h*k3));
-    CS2O30(iter+1) = subplus(CS2O30(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %H
-    CH0(iter+1) = CH0(iter); % refine this, im assuming something constantly balances pH here (or the conc is so big it dont matta)
+    Erev_Au_bed(j) = Eo_Au - R*temp/(z_Au*F)*log((gamma_S2O3*max(C(j,13),eps))^2/(gamma_Au*max(C(j,8),eps)));
+    Erev_Fe_bed(j) = Eo_Fe - R*temp/(z_Fe*F)*log(gamma_Fe2*max(C(j,9),eps)/gamma_Fe3*max(C(j,10),eps));
+    Erev_Ag_bed(j) = Eo_Ag - R*temp/(z_Ag*F)*log((gamma_S2O3*max(C(j,13),eps))^2/(gamma_Ag*max(C(j,11),eps)));
+    Erev_Pd_bed(j) = Eo_Pd - R*temp/(z_Pd*F)*log((gamma_S2O3*max(C(j,13),eps))^4/(gamma_Pd*max(C(j,12),eps)));
+    Erev_An_bed(j) = Eo_An - R*temp/(z_An*F)*log((aO2*(gamma_H*max(C(j,14),eps))^4));
     
-    %%%Electrowinning%%%
-    %calculated vars
-    K(iter) = gammaAg*CAgS2O32(iter)+gammaAu*CAuS2O32(iter)+gammaPd*2*CPdS2O34(iter)+gammaH*CH(iter);%update this
-    R(iter) = cursivel_elec/(Acat_elec*K(1));
-    %nernst potentials
-    ErevAn(iter) = -1.23 + (Rgas*T_elec/(4*F))*log(aO2*(gamH*CH(iter))^4);
-    ErevFe(iter) = -0.77 + (Rgas*T_elec/F)*log(gamFe3*(CFe2(iter))/(gamFe2*(CFe3(iter))));
-    ErevAg(iter) = 0.060113 + (Rgas*T_elec/(F))*log(((gamS2O3*(CS2O3(iter)))^2)/(gamAg*CAgS2O32(iter)));
-    ErevAu(iter) = 0.153 + (Rgas*T_elec/(F))*log(((gamS2O3*(CS2O3(iter)))^2)/(gamAg*CAuS2O32(iter)));
-    ErevPd(iter) = 0.0862 + (Rgas*T_elec/(2*F))*log(((gamS2O3*(CS2O3(iter)))^4)/((gamAg*CPdS2O34(iter))));
-    ErevH(iter) = 0 + (Rgas*T_elec/F)*log((aH2^0.5)/(gamH*CH(iter)));
-    %solving for current and overpotentials
-    CurrentFunc = @(eta) Aan_elec*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T_elec))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T_elec))) + iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))))+Acat_elec*( iAg0*(exp(alphaAg*F*eta(2)/(Rgas*T_elec))-exp(-(1-alphaAg)*F*eta(2)/(Rgas*T_elec))) + iAu0*(exp(alphaAu*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T_elec))-exp(-(1-alphaAu)*F*(ErevAg(iter)+eta(2)-ErevAu(iter))/(Rgas*T_elec))) + iPd0*(exp(alphaPd*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T_elec))-exp(-(1-alphaPd)*2*F*(ErevAg(iter)+eta(2)-ErevPd(iter))/(Rgas*T_elec)))+iH0*(exp(alphaH*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T_elec))-exp(-(1-alphaH)*F*(ErevAg(iter)+eta(2)-ErevH(iter))/(Rgas*T_elec))));
-    VappFunc = @(eta) abs(ErevAg(iter)-ErevAn(iter))+Aan_elec*( iAn0*(exp(alphaAn*4*F*eta(1)/(Rgas*T_elec))-exp(-(1-alphaAn)*4*F*eta(1)/(Rgas*T_elec)))+ iFe0*(exp(alphaFe*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))-exp(-(1-alphaFe)*F*(-ErevAn(iter)+eta(1)+ErevFe(iter))/(Rgas*T_elec))))*(R(1)+Rhardware_elec)+abs(eta(1))+abs(eta(2))-Vapp;
-    overpotentialFunc = @(eta) [CurrentFunc(eta);VappFunc(eta)];  
-    etaGuess0 = [etaAn(iter) etaAg(iter)];
-    options = optimoptions('fsolve','MaxFunctionEvaluations',1000,'MaxIterations',1000);
-    eta = fsolve(overpotentialFunc,etaGuess0,options);
-    %assigning overpotentials    
-    etaAn(iter) = eta(1);
-    etaFe(iter) = -ErevAn(iter)+eta(1)+ErevFe(iter);
-    etaAg(iter) = eta(2);
-    etaAu(iter) = ErevAg(iter)+eta(2)-ErevAu(iter);
-    etaPd(iter) = ErevAg(iter)+eta(2)-ErevPd(iter);
-    etaH(iter) = ErevAg(iter)+eta(2)-ErevH(iter);
-    %assigning currents
-    iAg(iter) = iAg0*(exp(alphaAg*1*F*(etaAg(iter))/(Rgas*T_elec))-exp(-(1-alphaAg)*1*F*etaAg(iter)/(Rgas*T_elec)));
-    iAu(iter) = iAu0*(exp(alphaAu*1*F*(etaAu(iter))/(Rgas*T_elec))-exp(-(1-alphaAu)*1*F*etaAu(iter)/(Rgas*T_elec)));
-    iPd(iter) = iPd0*(exp(alphaPd*2*F*(etaPd(iter))/(Rgas*T_elec))-exp(-(1-alphaPd)*2*F*etaPd(iter)/(Rgas*T_elec)));
-    iH(iter) = iH0*(exp(alphaH*1*F*(etaH(iter))/(Rgas*T_elec))-exp(-(1-alphaH)*1*F*etaH(iter)/(Rgas*T_elec)));
-    iFe2(iter) = iFe0*(exp(alphaFe*F*(etaFe(iter))/(Rgas*T_elec))-exp(-(1-alphaFe)*F*etaFe(iter)/(Rgas*T_elec)));
-    iAn(iter) = iAn0*(exp(alphaAn*4*F*(etaAn(iter))/(Rgas*T_elec))-exp(-(1-alphaAn)*4*F*etaAn(iter)/(Rgas*T_elec)));
-    Itot(iter) = Acat_elec*(iAg(iter)+iAu(iter)+iPd(iter)+iH(iter));
-    Iantot(iter) = Aan_elec*(iAn(iter)+iFe2(iter));
-    Vappdiff(iter) = VappFunc(eta);
-    Idiff(iter) = CurrentFunc(eta);
-    %Ag
-    k1 = dnAgdt(CAgS2O320(iter),CAgS2O32(iter),t(iter),iAg(iter));
-    k2 = dnAgdt((CAgS2O320(iter)+(1/2)*h*k1),(CAgS2O32(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k1));
-    k3 = dnAgdt((CAgS2O320(iter)+(1/2)*h*k2),(CAgS2O32(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k2));
-    k4 = dnAgdt((CAgS2O320(iter)+h*k3),(CAgS2O32(iter)+h*k3),(t(iter)+h),(iAg(iter)+h*k3));
-    CAgS2O32(iter+1) = subplus(CAgS2O32(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Au
-    k1 = dnAudt(CAuS2O320(iter),CAuS2O32(iter),t(iter),iAu(iter));
-    k2 = dnAudt((CAuS2O320(iter)+(1/2)*h*k1),(CAuS2O32(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAu(iter)+(1/2)*h*k1));
-    k3 = dnAudt((CAuS2O320(iter)+(1/2)*h*k2),(CAuS2O32(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAu(iter)+(1/2)*h*k2));
-    k4 = dnAudt((CAuS2O320(iter)+h*k3),(CAuS2O32(iter)+h*k3),(t(iter)+h),(iAu(iter)+h*k3));
-    CAuS2O32(iter+1) = subplus(CAuS2O32(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Pd
-    k1 = dnPddt(CPdS2O340(iter),CPdS2O34(iter),t(iter),iPd(iter));
-    k2 = dnPddt((CPdS2O340(iter)+(1/2)*h*k1),(CPdS2O34(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iPd(iter)+(1/2)*h*k1));
-    k3 = dnPddt((CPdS2O340(iter)+(1/2)*h*k2),(CPdS2O34(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iPd(iter)+(1/2)*h*k2));
-    k4 = dnPddt((CPdS2O340(iter)+h*k3),(CPdS2O34(iter)+h*k3),(t(iter)+h),(iPd(iter)+h*k3));
-    CPdS2O34(iter+1) = subplus(CPdS2O34(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Fe2
-    k1 = dnFe2dt(CFe20(iter),CFe2(iter),t(iter),iFe2(iter));
-    k2 = dnFe2dt((CFe20(iter)+(1/2)*h*k1),(CFe2(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k1));
-    k3 = dnFe2dt((CFe20(iter)+(1/2)*h*k2),(CFe2(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k2));
-    k4 = dnFe2dt((CFe20(iter)+h*k3),(CFe2(iter)+h*k3),(t(iter)+h),(iFe2(iter)+h*k3));
-    CFe2(iter+1) = subplus(CFe2(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %Fe3
-    k1 = dnFe3dt(CFe30(iter),CFe3(iter),t(iter),iFe2(iter));
-    k2 = dnFe3dt((CFe30(iter)+(1/2)*h*k1),(CFe3(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k1));
-    k3 = dnFe3dt((CFe30(iter)+(1/2)*h*k2),(CFe3(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iFe2(iter)+(1/2)*h*k2));
-    k4 = dnFe3dt((CFe30(iter)+h*k3),(CFe3(iter)+h*k3),(t(iter)+h),(iFe2(iter)+h*k3));
-    CFe3(iter+1) = subplus(CFe3(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %S2O3
-    k1 = dnS2O3dt(CS2O30(iter),CS2O3(iter),t(iter),iAg(iter),iAu(iter),iPd(iter));
-    k2 = dnS2O3dt((CS2O30(iter)+(1/2)*h*k1),(CS2O3(iter)+(1/2)*h*k1),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k1),(iAu(iter)+(1/2)*h*k1),(iPd(iter)+(1/2)*h*k1));
-    k3 = dnS2O3dt((CS2O30(iter)+(1/2)*h*k2),(CS2O3(iter)+(1/2)*h*k2),(t(iter)+(1/2)*h),(iAg(iter)+(1/2)*h*k2),(iAu(iter)+(1/2)*h*k2),(iPd(iter)+(1/2)*h*k2));
-    k4 = dnS2O3dt((CS2O30(iter)+h*k3),(CS2O3(iter)+h*k3),(t(iter)+h),(iAg(iter)+h*k3),(iAu(iter)+h*k3),(iPd(iter)+h*k3));
-    CS2O3(iter+1) = subplus(CS2O3(iter) + (1/6)*h*(k1+2*k2+2*k3+k4))+eps;
-    %H
-    CH(iter+1) = CH(iter); % refine this, im assuming something constantly balances pH here (or the conc is so big it dont matta)
-    %other variables to calc
-    etaAn(iter+1) = eta(1);
-    etaAg(iter+1) = eta(2);
-    %additional processing equations
-    wAg(iter+1) = -(Acat_elec*mmAg/F)*h*60*(sum(iAg)-iAg(end));
-    wAu(iter+1) = -(Acat_elec*mmAu/F)*h*60*(sum(iAu)-iAu(end));
-    wPd(iter+1) = -(Acat_elec*mmPd/(2*F))*h*60*(sum(iPd)-iPd(end));
+    %resistance calculation for IR drops
+    kappa = 1000*(C(j,1)*lamda_Au + C(j,2)*lamda_Fe2 + C(j,3)*lamda_Fe3 + C(j,6)*lamda_S2O3 + C(j,5)*lamda_Pd + C(j,7)*lamda_H + C(j,4)*lamda_Ag);
+    r_sol(j) = l/A_cell/kappa*100; %ohms
+    r_hardware = 1; %ohms
+    
+    %solve cell currents and electrode potentials
+    solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol(j), r_hardware, [Erev_Au_cell(j) Erev_Fe_cell(j) Erev_Ag_cell(j) Erev_Pd_cell(j) Erev_An_cell(j) Erev_H_cell(j)], S_an, S_cat, temp);
+    %initial guesses [I_an, E_an, E_cat]
+    x0 = [1, 0.2, -0.2];
+    options = optimset('Display','off');
+    x = fsolve(solver, x0, options);
+    I_an(j) = x(1);
+    E_an(j) = x(2);
+    E_cat(j) = x(3);
+    I_Fe(j) = i_BV(E_an(j) - Erev_Fe_cell(j), i0_Fe, alpha_Fe, z_Fe, temp);
+    I_An(j) = i_BV(E_an(j) - Erev_An_cell(j), i0_An, alpha_An, z_An, temp);
+    I_Au(j) = i_BV(E_cat(j) - Erev_Au_cell(j), i0_Au, alpha_Au, z_Au, temp);
+    I_Ag(j) = i_BV(E_cat(j) - Erev_Ag_cell(j), i0_Ag, alpha_Ag, z_Ag, temp);
+    I_Pd(j) = i_BV(E_cat(j) - Erev_Pd_cell(j), i0_Pd, alpha_Pd, z_Pd, temp);
+    I_H(j) = i_BV(E_an(j) - Erev_H_cell(j), i0_H, alpha_H, z_H, temp);
+    
+    
+    %solve extraction bed corrosion rate
+    j0 = 0; %Initial guess for E_corr, V
+    cor_solver = @(E_corr)cor(E_corr, [Erev_Au_bed(j), Erev_Fe_bed(j), Erev_Ag_bed(j), Erev_Pd_bed(j) Erev_An_bed(j)], temp);
+    E_corr(j) = fzero(cor_solver, j0);
+    I_corr_Fe(j) = -S_corr*i_BV(E_corr(j)-Erev_Fe_bed(j), i0_Fe, alpha_Fe, z_Fe, temp);
+    I_corr_Au(j) = S_corr*i_BV(E_corr(j)-Erev_Au_bed(j), i0_Au, alpha_Au, z_Au, temp);
+    I_corr_Ag(j) = S_corr*i_BV(E_corr(j)-Erev_Ag_bed(j), i0_Ag, alpha_Ag, z_Ag, temp);
+    I_corr_Pd(j) = S_corr*i_BV(E_corr(j)-Erev_Pd_bed(j), i0_Pd, alpha_Pd, z_Pd, temp);
+    I_corr_An(j) = -S_corr*i_BV(E_corr(j)-Erev_An_bed(j), i0_An, alpha_An, z_An, temp);
+    
 end
-t(iter+1)=h*(iter+1);
-CAg = nAgS2O32./V_elec;
-CAu = nAuS2O32./V_elec;
-CPd = nPdS2O34./V_elec;
-RemAg = CAgS2O32./CAgS2O32(1);
-RemAu = CAuS2O32./CAuS2O32(1);
-RemPd = CPdS2O34./CPdS2O34(1);
-%subplot(2,2,1)
-%plot(t(1:end-1),Vappdiff)
-%title('Vapp Error')
-%subplot(2,2,2)
-%plot(t(1:end-1),Idiff)
-%title('Current error')
-%subplot(2,2,3)
-%plot(t,RemAg,t,RemAu,t,RemPd)
-%xlabel('Time (h)')
-%ylabel('% consumption from initial')
-%title('Remaining in solution over time, step size 1 min')
-%legend('Silver','Gold','Palladium')
-%subplot(2,2,4)
-%plot(t,wAg,t,wAu,t,wPd)
-%xlabel('Time (h)')
-%ylabel('Total amount deposited (g)')
-%title('Deposited solution over time, step size 1 min')
-%legend('Silver','Gold','Palladium')
-disp(sum(Vappdiff))
-disp(sum(Idiff))
-subplot(2,1,1)
-plot(t(1:end-1),iAg_corr,t(1:end-1),iAu_corr,t(1:end-1),iPd_corr,t(1:end-1),iAn_corr,t(1:end-1),iFe2_corr)
-legend('Silver','Gold','Palladium','Anode','Iron')
-xlabel('Time (h)')
-ylabel('Corrosion currents (A/m2)')
-subplot(2,1,2)
-plot(t,CAgS2O320,t,CAuS2O320,t,CPdS2O340,t,CS2O30,t,CFe20,t,CFe30)
-legend('Silver','Gold','Palladium','Thiosulfate','Iron(II)','Iron(III)')
-toc
+
+%Calculate currents, overpotentials
+eta_Cu = E_cat - Erev_Au_cell;
+eta_Sn = E_cat - Erev_Ag_cell;
+eta_Ni = E_cat - Erev_Pd_cell;
+
+%plots
+subplot(3,2,1)
+plot(t,C(:,1),t,C(:,8))
+legend('Cell','Bed')
+xlabel('Time (s)')
+ylabel('Concentrations (M)')
+title('Gold')
+subplot(3,2,2)
+plot(t,C(:,2),t,C(:,9))
+legend('Cell','Bed')
+xlabel('Time (s)')
+ylabel('Concentrations (M)')
+title('Iron(II)')
+subplot(3,2,3)
+plot(t,C(:,3),t,C(:,10))
+legend('Cell','Bed')
+xlabel('Time (s)')
+ylabel('Concentrations (M)')
+title('Iron(III)')
+subplot(3,2,4)
+plot(t,C(:,4),t,C(:,11))
+legend('Cell','Bed')
+xlabel('Time (s)')
+ylabel('Concentrations (M)')
+title('Silver')
+subplot(3,2,5)
+plot(t,C(:,5),t,C(:,12))
+legend('Cell','Bed')
+xlabel('Time (s)')
+ylabel('Concentrations (M)')
+title('Palladium')
+subplot(3,2,6)
+plot(t,I_corr,t,(I_Au+I_Ag+I_Pd+I_H),t,(I_Fe+I_An))
+xlabel('Time (s)')
+ylabel('Current (A)')
+title('Currents')
+legend('Corr','Cathode','Anode')
+
+function Y = cell_solver(I_an, E_an, E_cat, V_app, r_sol, r_hardware, Erev, S_an, S_cat, temp)
+    %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
+    %Erev: Array of nernst potentials - 1 = Au, 2 = Fe, 3 = Ag, 4 = Pd, 5 =
+    % O2 evolution, 6 = H2 evolution
+    global i0_Fe alpha_Fe z_Fe i0_Au alpha_Au z_Au i0_Ag alpha_Ag z_Ag i0_Pd alpha_Pd z_Pd i0_An alpha_An z_An i0_H alpha_H z_H
+    eta_Au = E_cat - Erev(1);
+    eta_Fe = E_an - Erev(2);
+    eta_Ag = E_cat - Erev(3);
+    eta_Pd = E_cat - Erev(4);
+    eta_An = E_an - Erev(5);
+    eta_H = E_cat - Erev(6);
+    i_cat = i_BV(eta_Au, i0_Au, alpha_Au, z_Au, temp) + i_BV(eta_Ag, i0_Ag, alpha_Ag, z_Ag, temp) + i_BV(eta_Pd, i0_Pd, alpha_Pd, z_Pd, temp) + i_BV(eta_H, i0_H, alpha_H, z_H, temp);
+    Y(1) = E_an - E_cat + I_an*(r_sol+r_hardware) - V_app;
+    Y(2) = I_an - (i_BV(eta_Fe, i0_Fe, alpha_Fe, z_Fe, temp)+i_BV(eta_An, i0_An, alpha_An, z_An, temp))*S_an;
+    Y(3) = I_an + i_cat*S_cat;
+end
+
+function [func] = cor(Ecorr, Erev, temp)
+  %1 = Cu, 2= Fe, 3= Sn, 4 = Ni
+  global i0_Fe alpha_Fe z_Fe i0_Au alpha_Au z_Au i0_Ag alpha_Ag z_Ag i0_Pd alpha_Pd z_Pd i0_An alpha_An z_An
+  i_Au = i_BV(Ecorr-Erev(1), i0_Au, alpha_Au, z_Au, temp);
+  i_Fe = i_BV(Ecorr-Erev(2), i0_Fe, alpha_Fe, z_Fe, temp);
+  i_Ag = i_BV(Ecorr-Erev(3), i0_Ag, alpha_Ag, z_Ag, temp);
+  i_Pd = i_BV(Ecorr-Erev(4), i0_Pd, alpha_Pd, z_Pd, temp);
+  i_An = i_BV(Ecorr-Erev(5), i0_An, alpha_An, z_An, temp);
+  func = i_Au + i_Fe + i_Ag + i_Pd + i_An;
+  end
