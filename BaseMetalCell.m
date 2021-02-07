@@ -195,12 +195,12 @@ Ci_Sn2_cell = 0.0;
 Ci_Al3_cell = 0.0;
 Ci_Pb2_cell = 0.0;
 Ci_Fe2_cell = 0.5;
-Ci_Fe3_cell = 0.0;
+Ci_Fe3_cell = 0.1;
 Ci_Ag_cell = 0.0;
 Ci_Au_cell = 0.0;
 Ci_Pd2_cell = 0.0;
 Ci_H_cell = 0.5;
-Ci_Cl_cell = 2*(Ci_Cu2_cell+Ci_Fe2_cell)+Ci_H_cell; %Calculation to ensure 
+Ci_Cl_cell = 2*(Ci_Cu2_cell+Ci_Fe2_cell)+Ci_H_cell+3*Ci_Fe3_cell; %Calculation to ensure 
 %electrolyte has net neutral charge
 Ci_cell = [Ci_Cu2_cell Ci_Sn2_cell Ci_Al3_cell Ci_Pb2_cell Ci_Fe2_cell ...
     Ci_Fe3_cell Ci_Ag_cell Ci_Au_cell Ci_Pd2_cell Ci_H_cell Ci_Cl_cell];
@@ -211,12 +211,12 @@ Ci_Sn2_lch = 0;
 Ci_Al3_lch = 0;
 Ci_Pb2_lch = 0;
 Ci_Fe2_lch = 0.5;
-Ci_Fe3_lch = 0;
+Ci_Fe3_lch = 0.1;
 Ci_Ag_lch = 0;
 Ci_Au_lch = 0;
 Ci_Pd2_lch = 0;
 Ci_H_lch = 0.5;
-Ci_Cl_lch = 2*(Ci_Cu2_lch+Ci_Fe2_lch)+Ci_H_lch;
+Ci_Cl_lch = 2*(Ci_Cu2_lch+Ci_Fe2_lch)+Ci_H_lch+3*Ci_Fe3_lch;
 Ci_lch = [Ci_Cu2_lch Ci_Sn2_lch Ci_Al3_lch Ci_Pb2_lch Ci_Fe2_lch ... 
     Ci_Fe3_lch Ci_Ag_lch Ci_Au_lch Ci_Pd2_lch Ci_H_lch Ci_Cl_lch];
 

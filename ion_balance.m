@@ -18,6 +18,8 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     global R F;
     R = 8.314; %J/(mol K)
     F = 96485.3329; %C/mol
+    
+    e = realmin;
     %{
     Reactions
     Cu2+ + 2e- <--> Cu(s) (1)
@@ -171,30 +173,30 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     S_PCB = S_PCB*100^2; %convert m^2 to cm^2
     
     %Nernst potentials - electrowinning cell
-    Erev_Cu_cell = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma_Cu2*max(Cm(1),eps)));
-    Erev_Sn_cell = Eo_Sn - R*temp/(z_Sn*F)*log(1/(gamma_Sn2*max(Cm(2),eps)));
-    Erev_Al_cell = Eo_Al - R*temp/(z_Al*F)*log(1/(gamma_Al3*max(Cm(3),eps)));
-    Erev_Pb_cell = Eo_Pb - R*temp/(z_Pb*F)*log(1/(gamma_Pb2*max(Cm(4),eps)));
-    Erev_Fe1_cell = Eo_Fe1 - R*temp/(z_Fe1*F)*log(gamma_Fe2*max(Cm(5),eps)/gamma_Fe3*max(Cm(6),eps));
-    Erev_Fe2_cell = Eo_Fe2 - R*temp/(z_Fe2*F)*log(1/(gamma_Fe2*max(Cm(5),eps)));
-    Erev_Ag_cell = Eo_Ag - R*temp/(z_Ag*F)*log(gamma_Ag*max(Cm(7),eps));
-    Erev_Au_cell = Eo_Au - R*temp/(z_Au*F)*log(gamma_Au*max(Cm(8),eps));
-    Erev_Pd_cell = Eo_Pd - R*temp/(z_Pd*F)*log(gamma_Pd2*max(Cm(9),eps));
-    Erev_H_cell = Eo_H - R*temp/(z_H*F)*log(aH2/(gamma_H*max(Cm(10),eps))^2);
+    Erev_Cu_cell = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma(1)*max(Cm(1),e)));
+    Erev_Sn_cell = Eo_Sn - R*temp/(z_Sn*F)*log(1/(gamma(2)*max(Cm(2),e)));
+    Erev_Al_cell = Eo_Al - R*temp/(z_Al*F)*log(1/(gamma(3)*max(Cm(3),e)));
+    Erev_Pb_cell = Eo_Pb - R*temp/(z_Pb*F)*log(1/(gamma(4)*max(Cm(4),e)));
+    Erev_Fe1_cell = Eo_Fe1 - R*temp/(z_Fe1*F)*log(gamma(5)*max(Cm(5),e)/(gamma(6)*max(Cm(6),e)));
+    Erev_Fe2_cell = Eo_Fe2 - R*temp/(z_Fe2*F)*log(1/(gamma_Fe2*max(Cm(5),e)));
+    Erev_Ag_cell = Eo_Ag - R*temp/(z_Ag*F)*log(1/(gamma_Ag*max(Cm(7),e)));
+    Erev_Au_cell = Eo_Au - R*temp/(z_Au*F)*log(1/(gamma_Au*max(Cm(8),e)));
+    Erev_Pd_cell = Eo_Pd - R*temp/(z_Pd*F)*log(1/(gamma_Pd2*max(Cm(9),e)));
+    Erev_H_cell = Eo_H - R*temp/(z_H*F)*log(aH2/(gamma_H*max(Cm(10),e))^2);
     Erev_cell = [Erev_Cu_cell Erev_Sn_cell Erev_Al_cell Erev_Pb_cell Erev_Fe1_cell...
-        Erev_Fe2_cell Erev_Ag_cell Erev_Au_cell Erev_Pd_cell Erev_H_cell]
+        Erev_Fe2_cell Erev_Ag_cell Erev_Au_cell Erev_Pd_cell Erev_H_cell];
     
     %Nernst potentials - leaching vessel
-    Erev_Cu_lch = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma_Cu2*max(Cm(12),eps)));
-    Erev_Sn_lch = Eo_Sn - R*temp/(z_Sn*F)*log(1/(gamma_Sn2*max(Cm(13),eps)));
-    Erev_Al_lch = Eo_Al - R*temp/(z_Al*F)*log(1/(gamma_Al3*max(Cm(14),eps)));
-    Erev_Pb_lch = Eo_Pb - R*temp/(z_Pb*F)*log(1/(gamma_Pb2*max(Cm(15),eps)));
-    Erev_Fe1_lch = Eo_Fe1 - R*temp/(z_Fe1*F)*log(gamma_Fe2*max(Cm(16),eps)/gamma_Fe3*max(Cm(17),eps));
-    Erev_Fe2_lch = Eo_Fe2 - R*temp/(z_Fe2*F)*log(1/(gamma_Fe2*max(Cm(16),eps)));
-    Erev_Ag_lch = Eo_Ag - R*temp/(z_Ag*F)*log(gamma_Ag*max(Cm(18),eps));
-    Erev_Au_lch = Eo_Au - R*temp/(z_Au*F)*log(gamma_Au*max(Cm(19),eps));
-    Erev_Pd_lch = Eo_Pd - R*temp/(z_Pd*F)*log(gamma_Pd2*max(Cm(20),eps));
-    Erev_H_lch = Eo_H - R*temp/(z_H*F)*log(aH2/(gamma_H*max(Cm(21),eps))^2);
+    Erev_Cu_lch = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma_Cu2*max(Cm(12),e)));
+    Erev_Sn_lch = Eo_Sn - R*temp/(z_Sn*F)*log(1/(gamma_Sn2*max(Cm(13),e)));
+    Erev_Al_lch = Eo_Al - R*temp/(z_Al*F)*log(1/(gamma_Al3*max(Cm(14),e)));
+    Erev_Pb_lch = Eo_Pb - R*temp/(z_Pb*F)*log(1/(gamma_Pb2*max(Cm(15),e)));
+    Erev_Fe1_lch = Eo_Fe1 - R*temp/(z_Fe1*F)*log(gamma_Fe2*max(Cm(16),e)/gamma_Fe3*max(Cm(17),e));
+    Erev_Fe2_lch = Eo_Fe2 - R*temp/(z_Fe2*F)*log(1/(gamma_Fe2*max(Cm(16),e)));
+    Erev_Ag_lch = Eo_Ag - R*temp/(z_Ag*F)*log(1/(gamma_Ag*max(Cm(18),e)));
+    Erev_Au_lch = Eo_Au - R*temp/(z_Au*F)*log(1/(gamma_Au*max(Cm(19),e)));
+    Erev_Pd_lch = Eo_Pd - R*temp/(z_Pd*F)*log(1/(gamma_Pd2*max(Cm(20),e)));
+    Erev_H_lch = Eo_H - R*temp/(z_H*F)*log(aH2/(gamma_H*max(Cm(21),e))^2);
     Erev_lch = [Erev_Cu_lch Erev_Sn_lch Erev_Al_lch Erev_Pb_lch Erev_Fe1_lch...
         Erev_Fe2_lch Erev_Ag_lch Erev_Au_lch Erev_Pd_lch Erev_H_lch];
     
@@ -219,18 +221,18 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     eta_an = E_an - Erev_cell;
     i_cat = -subplus(-i_BV(eta_cat, i0, alpha, z, temp));
     I_cat = i_cat*S_cat;
-    i_an = subplus(i_BV(eta_an, i0, alpha, z, temp));
+    i_an = subplus(i_BV(eta_an(5), i0(5), alpha(5), z(5), temp));
     I_an = i_an*S_an;
-    I_cell = I_an+I_cat; %overall current for rxn i in cell
-    
+    I_cell = I_cat; %overall current for rxn i in cell
+    I_cell(5) = I_cell(5)+I_an; 
+    Erev_lch
     %solve extraction lch corrosion rate
-    j0 = 0; %Initial guess for E_corr, V
+    j0 = Erev_lch(5)*0.90; %Initial guess for E_corr, V
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, S_PCB, temp);
     E_corr = fzero(cor_solver, j0);
     i_corr = i_BV(E_corr-Erev_lch, i0, alpha, z, temp);
     S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0];
     I_corr = S_corr.*i_corr;
-    
     %Calculate concentration/mass balances
     dt = zeros(size(Cm));
     %Electrowinning cell concentration balances
@@ -243,7 +245,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     dt(7) = ((Cm(18)-Cm(7))*Q + I_cell(7)/F/z(7))/vol_cell; %Ag+
     dt(8) = ((Cm(19)-Cm(8))*Q + I_cell(8)/F/z(8))/vol_cell; %Au+
     dt(9) = ((Cm(20)-Cm(9))*Q + I_cell(9)/F/z(9))/vol_cell; %Pd2+
-    dt(10) = ((Cm(21)-Cm(10))*Q +I_cell(10)/F/z(10))/vol_lch; %H+
+    dt(10) = ((Cm(21)-Cm(10))*Q + I_cell(10)/F/z(10))/vol_lch; %H+
     dt(11) = (Cm(22)-Cm(11))*Q/vol_cell; %Cl-
     
     %Leaching vessel concentration balances
@@ -274,8 +276,14 @@ function Y = cell_solver(I, E_an, E_cat, V_app, r_sol, r_hardware, Erev, S_an, S
     eta_an = E_an - Erev(5);
     i_cat = -subplus(-i_BV(eta_cat, [i0(1:4) i0(6:10)], [alpha(1:4) alpha(6:10)], [z(1:4) z(6:10)], temp));
     I_cat = i_cat*S_cat;
+    if sum(I_cat) == -Inf
+        error("Cathodic current infinite");
+    end
     i_an = i_BV(eta_an, i0(5), alpha(5), z(5), temp);
     I_an = i_an*S_an;
+    if sum(I_an) == Inf
+        error("Anodic current infinite");
+    end
     Y(1) = E_an - E_cat + I*(r_sol+r_hardware) - V_app;
     Y(2) = I - I_an;
     Y(3) = I_an + sum(I_cat);
@@ -304,5 +312,9 @@ function func = cor(Ecorr, Erev, S_PCB, temp)
     i_corr = i_BV(Ecorr-Erev, i0, alpha, z, temp);
     %arrange surface areas in proper order
     S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0];
+    if abs(sum(S_corr.*i_corr)) == Inf
+        error("Corrosion currents infinite");
+    end
+    %imag(sum(S_corr.*i_corr))
     func = sum(S_corr.*i_corr);
 end
