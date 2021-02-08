@@ -160,7 +160,7 @@ V_app = 12; %V
 vol_lch = 200; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
 m_PCB_total = 80; %kg Mass of crushed PCBs
 r_particles = 0.001; %m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
-tfinal = 1; %s
+tfinal = 259200; %s
 
 %Weight fraction composition of PCB
 %Inert Cu Sn Al Pb Fe 
@@ -175,7 +175,7 @@ vfrac_PCB = V_PCB/sum(V_PCB);
 V_PCB_total = sum(V_PCB);
 
 packing_density = 0.6; %m3/m3 Loose packing density of equal sized spheres. Close packing density = 0.64.
-fill_pct = 100*sum(V_PCB)/(0.001*0.75*packing_density*vol_lch);
+fill_pct = 100*sum(V_PCB)/(0.001*packing_density*vol_lch);
 if fill_pct > 75
     txt = ['Warning: PCB mass is ', num2str(fill_pct), '% of total lching vessel volume'];
     disp(txt);
@@ -190,7 +190,7 @@ S_PCB = S_PCB*100^2; %convert m^2 to cm^2
 n_particles = sum(V_PCB)*3/(4*pi*r_particles^3);
 %initial concentrations in mol/L
 %Cell Concentrations (recovery)
-Ci_Cu2_cell = 0.2;
+Ci_Cu2_cell = 0;
 Ci_Sn2_cell = 0.0;
 Ci_Al3_cell = 0.0;
 Ci_Pb2_cell = 0.0;
@@ -206,7 +206,7 @@ Ci_cell = [Ci_Cu2_cell Ci_Sn2_cell Ci_Al3_cell Ci_Pb2_cell Ci_Fe2_cell ...
     Ci_Fe3_cell Ci_Ag_cell Ci_Au_cell Ci_Pd2_cell Ci_H_cell Ci_Cl_cell];
 
 %leching vessel concentrations (extraction)
-Ci_Cu2_lch = 0.2;
+Ci_Cu2_lch = 0;
 Ci_Sn2_lch = 0;
 Ci_Al3_lch = 0;
 Ci_Pb2_lch = 0;
@@ -227,7 +227,7 @@ Cm_i = [Ci_cell Ci_lch m_PCB];
 tspan = [0 tfinal];
 options = odeset('NonNegative',1:31);
 balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, V_app, n_particles, l, A_cell);
-[t, Cm] = ode15s(balance_solver, tspan, Cm_i, options);
+[t, Cm] = ode15s(balance_solver, tspan, Cm_i);
 %{
 %backcalculate currents/potentials
 Erev_Cu_cell = zeros(size(t));
