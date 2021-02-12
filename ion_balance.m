@@ -14,148 +14,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     %l = cell distance between electrodes;
     %A_cell = cell cross sectional area;
     
-    %universal constants
-    global R F;
-    R = 8.314; %J/(mol K)
-    F = 96485.3329; %C/mol
-    
-    e = eps;%realmin;
-    %{
-    Reactions
-    Cu2+ + 2e- <--> Cu(s) (1)
-    Sn2+ + 2e- <--> Sn(s) (2)
-    Al3+ + 3e- <--> Al(s) (3)
-    Pb2+ + 2e- <--> Pb(s) (4)
-    Fe3+ + e- <--> Fe2+ (5) (Fe1)
-    Fe2+ + 2e- <--> Fe(s) (6) (Fe2)
-    Ag+ + e- <--> Ag(s) (7)
-    Au+ + e- <--> Au(s) (8)
-    Pd2+ + 2e- <--> Pd(s) (9)
-    2H+ + e- <--> H2(g) (10)
-    4H+ + O2(g) + 4e- <--> 2H2O(l) (11)
-    %}
-    
-    %Electrochemical Constants
-    % # of electrons in rxn
-    global z;
-    z_Cu = 2;
-    z_Sn = 2;
-    z_Al = 3;
-    z_Pb = 3;
-    z_Fe1 = 1;
-    z_Fe2 = 2;
-    z_Ag = 1;
-    z_Au = 1;
-    z_Pd = 2;
-    z_H = 0.5;
-    z_An = 4;
-    z = [z_Cu z_Sn z_Al z_Pb z_Fe1 z_Fe2 z_Ag z_Au z_Pd z_H z_An];
-    % exchange current densities
-    global i0
-    i0_Cu = 5E-5; %A/cm^2
-    i0_Sn = 1E-6; %A/cm^2
-    i0_Al = 1E-6; %A/cm^2
-    i0_Pb = 1E-6; %A/cm^2
-    i0_Fe1 = 5E-6; %A/cm^2
-    i0_Fe2 = 5E-6; %A/cm^2
-    i0_Ag = 0;%1E-7; %A/cm^2
-    i0_Au = 0;%1E-7; %A/cm^2
-    i0_Pd = 0;%1E-8; %A/cm^2
-    i0_H = 1E-7; %A/cm^2
-    i0_An = 1E-12; %A/m2
-    i0 = [i0_Cu i0_Sn i0_Al i0_Pb i0_Fe1 i0_Fe2 i0_Ag i0_Au i0_Pd i0_H i0_An];
-    
-    % charge transfer coefficients
-    global alpha
-    alpha_Cu = 0.5;
-    alpha_Sn = 0.5;
-    alpha_Al = 0.5;
-    alpha_Pb = 0.5;
-    alpha_Fe1 = 0.5;
-    alpha_Fe2 = 0.5;
-    alpha_Ag = 0.5;
-    alpha_Au = 0.5;
-    alpha_Pd = 0.5;
-    alpha_H = 0.5;
-    alpha_An = 0.5;
-    alpha = [alpha_Cu alpha_Sn alpha_Al alpha_Pb alpha_Fe1 alpha_Fe2...
-        alpha_Ag alpha_Au alpha_Pd alpha_H alpha_An];
-    
-    % Standard half reaction potentials vs. SHE @ 298 K, 1 atm, 1 M https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)
-    global Eo
-    Eo_Cu = 0.337; %V
-    Eo_Sn = -0.13; %V
-    Eo_Al = -1.66; %V
-    Eo_Pb = -0.126; %V
-    Eo_Fe1 = 0.77; %V
-    Eo_Fe2 = -0.44; %V
-    Eo_Ag = 0.7896; %V
-    Eo_Au = 1.83; %V
-    Eo_Pd = 0.915; %V
-    Eo_H = 0; %V
-    Eo_An = 1.23; %V
-    Eo = [Eo_Cu Eo_Sn Eo_Al Eo_Pb Eo_Fe1 Eo_Fe2 Eo_Ag Eo_Au Eo_Pd Eo_H Eo_An];
-    
-    %activity coefficients of ions in solution
-    global gamma
-    gamma_Cu2 = 1;
-    gamma_Fe2 = 1;
-    gamma_Fe3 = 1;
-    gamma_Sn2 = 1;
-    gamma_Al3 = 1;
-    gamma_Pb2 = 1;
-    gamma_Ag = 1;
-    gamma_Au = 1;
-    gamma_Pd2 = 1;
-    gamma_H = 1;
-    gamma_Cl = 1;
-    gamma = [gamma_Cu2 gamma_Sn2 gamma_Al3 gamma_Pb2 gamma_Fe2 gamma_Fe3...
-        gamma_Ag gamma_Au gamma_Pd2 gamma_H];
-    aH2 = 0.0001; %atm
-    aO2 = 0.21; %atm
-    
-    %Lamda infinity values NEED source for iron, tin, nickel rest are from ChE 331 notes
-    lamda_Cu2 = 107.2; %S m^2/mol
-    lamda_H = 349.81; %S m^2/mol
-    lamda_Cl = 76.35; %S m^2/mol
-    lamda_Fe2 = 100; %S m^2/mol
-    lamda_Fe3 = 100; %S m^2/mol
-    lamda_Sn2 = 100; %S m^2/mol
-    lamda_Al3 = 100; %S m^2/mol
-    lamda_Pb2 = 100; %S m^2/mol
-    lamda_Ag = 100; %S m^2/mol
-    lamda_Au = 100; %S m^2/mol
-    lamda_Pd = 100; %S m^2/mol
-    
-    %Density of inert material SUBJECT TO CHANGE (Based off range of epoxy)
-    rho_inert = 1200; %kg/m^3
-    %metal densities in kg/m^3 
-    rho_Cu = 8960;
-    rho_Sn = 5750;
-    rho_Al = 2700;
-    rho_Pb = 11350;
-    rho_Fe = 7847;
-    %rho_Zn = 7133;
-    %rho_Ca = 1550;
-    %rho_Ni = 8908;
-    rho_Ag = 10490;
-    rho_Au = 19300;
-    rho_Pd = 11900;
-    rho = [rho_inert rho_Cu rho_Sn rho_Al rho_Pb rho_Fe rho_Ag rho_Au rho_Pd];
-    %molecular weights
-    mw_Cu = 64.546;
-    mw_Sn = 118.71;
-    mw_Al = 26.98;
-    mw_Pb = 207.2;
-    mw_Fe = 55.845;
-    %mw_Zn = 65.38;
-    %mw_Ca = 40.078;
-    %mw_Ni = 58.6934;
-    mw_Ag = 107.8682;
-    mw_Au = 196.966;
-    mw_Pd = 106.42;
-    %index 1 empty to mark place of inert material in other arrays
-    mw = [0 mw_Cu mw_Sn mw_Al mw_Pb mw_Fe mw_Ag mw_Au mw_Pd];
+    propertiesBaseMetals
     
     %calculate total mass and wt fractions based on partial masses at
     %timestep
@@ -177,46 +36,21 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     S_PCB = vfrac_PCB*S_PCB_total; %array with exposed surface area of each component
     S_PCB = subplus(S_PCB*100^2); %convert m^2 to cm^2
     
-    %Nernst potentials - electrowinning cell
-    Erev_Cu_cell = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma(1)*max(Cm(1),e)));
-    Erev_Sn_cell = Eo_Sn - R*temp/(z_Sn*F)*log(1/(gamma(2)*max(Cm(2),e)));
-    Erev_Al_cell = Eo_Al - R*temp/(z_Al*F)*log(1/(gamma(3)*max(Cm(3),e)));
-    Erev_Pb_cell = Eo_Pb - R*temp/(z_Pb*F)*log(1/(gamma(4)*max(Cm(4),e)));
-    Erev_Fe1_cell = Eo_Fe1 - R*temp/(z_Fe1*F)*log(gamma(5)*max(Cm(5),e)/(gamma(6)*max(Cm(6),e)));
-    Erev_Fe2_cell = Eo_Fe2 - R*temp/(z_Fe2*F)*log(1/(gamma_Fe2*max(Cm(5),e)));
-    Erev_Ag_cell = Eo_Ag - R*temp/(z_Ag*F)*log(1/(gamma_Ag*max(Cm(7),e)));
-    Erev_Au_cell = Eo_Au - R*temp/(z_Au*F)*log(1/(gamma_Au*max(Cm(8),e)));
-    Erev_Pd_cell = Eo_Pd - R*temp/(z_Pd*F)*log(1/(gamma_Pd2*max(Cm(9),e)));
-    Erev_H_cell = Eo_H - R*temp/(z_H*F)*log(aH2/(gamma_H*max(Cm(10),e))^2);
-    Erev_An_cell = Eo_An - R*temp/(z_An*F)*log(1/(aO2*(gamma_H*max(Cm(10),e))^4));
-    Erev_cell = [Erev_Cu_cell Erev_Sn_cell Erev_Al_cell Erev_Pb_cell Erev_Fe1_cell...
-        Erev_Fe2_cell Erev_Ag_cell Erev_Au_cell Erev_Pd_cell Erev_H_cell Erev_An_cell];
-    
-    %Nernst potentials - leaching vessel
-    Erev_Cu_lch = Eo_Cu - R*temp/(z_Cu*F)*log(1/(gamma_Cu2*max(Cm(12),e)));
-    Erev_Sn_lch = Eo_Sn - R*temp/(z_Sn*F)*log(1/(gamma_Sn2*max(Cm(13),e)));
-    Erev_Al_lch = Eo_Al - R*temp/(z_Al*F)*log(1/(gamma_Al3*max(Cm(14),e)));
-    Erev_Pb_lch = Eo_Pb - R*temp/(z_Pb*F)*log(1/(gamma_Pb2*max(Cm(15),e)));
-    Erev_Fe1_lch = Eo_Fe1 - R*temp/(z_Fe1*F)*log(gamma_Fe2*max(Cm(16),e)/gamma_Fe3*max(Cm(17),e));
-    Erev_Fe2_lch = Eo_Fe2 - R*temp/(z_Fe2*F)*log(1/(gamma_Fe2*max(Cm(16),e)));
-    Erev_Ag_lch = Eo_Ag - R*temp/(z_Ag*F)*log(1/(gamma_Ag*max(Cm(18),e)));
-    Erev_Au_lch = Eo_Au - R*temp/(z_Au*F)*log(1/(gamma_Au*max(Cm(19),e)));
-    Erev_Pd_lch = Eo_Pd - R*temp/(z_Pd*F)*log(1/(gamma_Pd2*max(Cm(20),e)));
-    Erev_H_lch = Eo_H - R*temp/(z_H*F)*log(aH2/(gamma_H*max(Cm(21),e))^2);
-    Erev_An_lch = Eo_An - R*temp/(z_An*F)*log(1/(aO2*(gamma_H*max(Cm(21),e))^4));
-    Erev_lch = [Erev_Cu_lch Erev_Sn_lch Erev_Al_lch Erev_Pb_lch Erev_Fe1_lch...
-        Erev_Fe2_lch Erev_Ag_lch Erev_Au_lch Erev_Pd_lch Erev_H_lch Erev_An_lch];
+    [Erev_cell, Erev_lch] = nernstPotential(Cm,temp,aH2,aO2);
     
     %resistance calculation for IR drop in cell
-    kappa = 1000*(Cm(1)*lamda_Cu2+Cm(2)*lamda_Sn2+Cm(3)*lamda_Al3+...
-        Cm(4)*lamda_Pb2+Cm(5)*lamda_Fe2+Cm(6)*lamda_Fe3+Cm(7)*lamda_Ag+...
-        Cm(8)*lamda_Au+Cm(9)*lamda_Pd+Cm(10)*lamda_H+Cm(11)*lamda_Cl);
+    kappa = 1000*(Cm(1)*lamda(1)+Cm(2)*lamda(2)+Cm(3)*lamda(3)+...
+        Cm(4)*lamda(4)+Cm(5)*lamda(5)+Cm(6)*lamda(6)+Cm(7)*lamda(7)+...
+        Cm(8)*lamda(8)+Cm(9)*lamda(9)+Cm(10)*lamda(10)+Cm(11)*lamda(11));
     r_sol = l/A_cell/kappa*100;
     r_hardware = 1; %ohms
     
+    %%%Electrowinning Cell solving%%%
     %solve cell currents and electrode potentials
+    onCathode = [1 1 1 1 0 1 1 1 1 1 0];
+    onAnode = -(onCathode-1);
     solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol, r_hardware,...
-        Erev_cell, S_an, S_cat, temp);
+        Erev_cell, onCathode, S_an, S_cat, temp);
     %initial guesses [I_an, E_an, E_cat]
     x0 = [0.2, 0.1, -0.1];
     options = optimoptions(@fsolve, 'Display','final', 'MaxFunctionEvaluations', 3000);
@@ -226,19 +60,22 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     E_cat = x(3);
     eta_cat = E_cat - Erev_cell;
     eta_an = E_an - Erev_cell;
-    i_cat = (i_BV(eta_cat, i0, alpha, z, temp));
+    i_cat = onCathode.*i_BV(eta_cat, i0, alphas, z, temp);
     I_cat = i_cat*S_cat;
-    i_an = (i_BV(eta_an(5), i0(5), alpha(5), z(5), temp));
+    i_an = onAnode.*i_BV(eta_an, i0, alphas, z, temp);
     I_an = i_an*S_an;
-    I_cell = I_cat; %overall current for rxn i in cell
-    I_cell(5) = I_cell(5)+I_an; 
+    I_cell = I_cat+I_an; %overall current for rxn i in cell
+    
+    %%%Leaching Unit solving%%%
     %solve extraction lch corrosion rate
     j0 = Erev_lch(5)*0.90; %Initial guess for E_corr, V
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, S_PCB, temp);
     E_corr = fzero(cor_solver, j0);
-    i_corr = i_BV(E_corr-Erev_lch, i0, alpha, z, temp);
+    i_corr = i_BV(E_corr-Erev_lch, i0, alphas, z, temp);
     S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0 sum(S_PCB)];
     I_corr = S_corr.*i_corr;
+    
+    %%%Solving for mass balance differentials%%%%
     %Calculate concentration/mass balances
     dt = zeros(size(Cm));
     %Electrowinning cell concentration balances
@@ -274,48 +111,11 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     t
 end
 
-function Y = cell_solver(I, E_an, E_cat, V_app, r_sol, r_hardware, Erev, S_an, S_cat, temp)
-    %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
-    %Erev: Array of nernst potentials
-    global i0 alpha z
-    eta_cat = E_cat - [Erev(1:4) Erev(6:10)];
-    eta_an = [(E_an - Erev(5)) (E_an - Erev(11))];
-    i_cat = (i_BV(eta_cat, [i0(1:4) i0(6:10)], [alpha(1:4) alpha(6:10)], [z(1:4) z(6:10)], temp));
-    I_cat = i_cat*S_cat;
-    if sum(I_cat) == -Inf
-        error("Cathodic current infinite");
-    end
-    i_an = i_BV(eta_an, [i0(5) i0(11)], [alpha(5) alpha(11)], [z(5) z(11)], temp);
-    I_an = sum(i_an)*S_an;
-    if sum(I_an) == Inf
-        error("Anodic current infinite");
-    end
-    Y(1) = E_an - E_cat + I*(r_sol+r_hardware) - V_app;
-    Y(2) = I - I_an;
-    Y(3) = I_an + sum(I_cat);
-end
-%{
-function Y = cell_solver(I, E_an, E_cat, V_app, r_sol, r_hardware, Erev, S_an, S_cat, temp)
-    %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
-    %Erev: Array of nernst potentials
-    global i0 alpha z
-    eta_cat = E_cat - Erev;
-    eta_an = E_an - Erev;
-    i_cat = -subplus(-i_BV(eta_cat, i0, alpha, z, temp));
-    I_cat = i_cat*S_cat;
-    i_an = subplus(i_BV(eta_an, i0, alpha, z, temp));
-    I_an = i_an*S_an;
-    Y(1) = E_an - E_cat + I*(r_sol+r_hardware) - V_app;
-    Y(2) = I - sum(I_an);
-    Y(3) = sum(I_an) + sum(I_cat);
-end
-%}
-
 function func = cor(Ecorr, Erev, S_PCB, temp)
     %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
     %Erev: Array of nernst potentials
-    global i0 alpha z
-    i_corr = i_BV(Ecorr-Erev, i0, alpha, z, temp);
+    global i0 alphas z
+    i_corr = i_BV(Ecorr-Erev, i0, alphas, z, temp);
     %arrange surface areas in proper order
     S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0 sum(S_PCB)];
     if abs(sum(S_corr.*i_corr)) == Inf
