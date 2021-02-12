@@ -37,8 +37,8 @@ z_Ag = 1;
 z_Au = 1;
 z_Pd = 2;
 z_H = 0.5;
-z = [z_Cu z_Sn z_Al z_Pb z_Fe1 z_Fe2 z_Ag z_Au z_Pd z_H];
-
+z_An = 4;
+z = [z_Cu z_Sn z_Al z_Pb z_Fe1 z_Fe2 z_Ag z_Au z_Pd z_H z_An];
 % exchange current densities
 global i0
 i0_Cu = 5E-5; %A/cm^2
@@ -47,11 +47,12 @@ i0_Al = 1E-6; %A/cm^2
 i0_Pb = 1E-6; %A/cm^2
 i0_Fe1 = 5E-6; %A/cm^2
 i0_Fe2 = 5E-6; %A/cm^2
-i0_Ag = 1E-7; %A/cm^2
-i0_Au = 1E-7; %A/cm^2
-i0_Pd = 1E-8; %A/cm^2
+i0_Ag = 0;%1E-7; %A/cm^2
+i0_Au = 0;%1E-7; %A/cm^2
+i0_Pd = 0;%1E-8; %A/cm^2
 i0_H = 1E-7; %A/cm^2
-i0 = [i0_Cu i0_Sn i0_Al i0_Pb i0_Fe1 i0_Fe2 i0_Ag i0_Au i0_Pd i0_H];
+i0_An = 1E-12; %A/m2
+i0 = [i0_Cu i0_Sn i0_Al i0_Pb i0_Fe1 i0_Fe2 i0_Ag i0_Au i0_Pd i0_H i0_An];
 
 % charge transfer coefficients
 global alpha
@@ -65,8 +66,9 @@ alpha_Ag = 0.5;
 alpha_Au = 0.5;
 alpha_Pd = 0.5;
 alpha_H = 0.5;
+alpha_An = 0.5;
 alpha = [alpha_Cu alpha_Sn alpha_Al alpha_Pb alpha_Fe1 alpha_Fe2...
-    alpha_Ag alpha_Au alpha_Pd alpha_H];
+    alpha_Ag alpha_Au alpha_Pd alpha_H alpha_An];
 
 % Standard half reaction potentials vs. SHE @ 298 K, 1 atm, 1 M https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)
 global Eo
@@ -80,7 +82,8 @@ Eo_Ag = 0.7896; %V
 Eo_Au = 1.83; %V
 Eo_Pd = 0.915; %V
 Eo_H = 0; %V
-Eo = [Eo_Cu Eo_Sn Eo_Al Eo_Pb Eo_Fe1 Eo_Fe2 Eo_Ag Eo_Au Eo_Pd Eo_H];
+Eo_An = 1.23; %V
+Eo = [Eo_Cu Eo_Sn Eo_Al Eo_Pb Eo_Fe1 Eo_Fe2 Eo_Ag Eo_Au Eo_Pd Eo_H Eo_An];
 
 %activity coefficients of ions in solution
 global gamma
@@ -96,9 +99,10 @@ gamma_Pd2 = 1;
 gamma_H = 1;
 gamma_Cl = 1;
 gamma = [gamma_Cu2 gamma_Sn2 gamma_Al3 gamma_Pb2 gamma_Fe2 gamma_Fe3...
-        gamma_Ag gamma_Au gamma_Pd2 gamma_H];
+    gamma_Ag gamma_Au gamma_Pd2 gamma_H];
 aH2 = 0.0001; %atm
-    
+aO2 = 0.21; %atm
+
 %Lamda infinity values NEED source for iron, tin, nickel rest are from ChE 331 notes
 lamda_Cu2 = 107.2; %S m^2/mol
 lamda_H = 349.81; %S m^2/mol
@@ -141,12 +145,12 @@ mw_Au = 196.966;
 mw_Pd = 106.42;
 %index 1 empty to mark place of inert material in other arrays
 mw = [0 mw_Cu mw_Sn mw_Al mw_Pb mw_Fe mw_Ag mw_Au mw_Pd];
-
+    
 % system parameters
 temp = 298; %K
 pres = 1; % atm
 vol_cell = 250; %L
-Q = 5; % L/s (flowrate)
+Q = 5;%; % L/s (flowrate)
 %Electrode areas
 S_cat = 500; %cm^2
 S_an = 500; %cm^2
@@ -227,7 +231,7 @@ Cm_i = [Ci_cell Ci_lch m_PCB];
 tspan = [0 tfinal];
 options = odeset('NonNegative',1:31);
 balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, V_app, n_particles, l, A_cell);
-[t, Cm] = ode15s(balance_solver, tspan, Cm_i);
+[t, Cm] = ode15s(balance_solver, tspan, Cm_i, options);
 %{
 %backcalculate currents/potentials
 Erev_Cu_cell = zeros(size(t));
@@ -326,28 +330,40 @@ xlabel('Time (s)')
 ylabel('Current (A)')
 title('Currents')
 legend('Corr','CopperCell','IronCell')
-
-function Y = cell_solver(I_an, E_an, E_cat, V_app, r_sol, r_hardware, Erev, S_an, S_cat, temp)
+%}
+function Y = cell_solver(I, E_an, E_cat, V_app, r_sol, r_hardware, Erev, S_an, S_cat, temp)
     %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
-    %Erev: Array of nernst potentials - 1 = Cu, 2 = Fe, 3 = Sn, 4 = Ni
-    global i0_Fe alpha_Fe z_Fe i0_Cu alpha_Cu z_Cu i0_Sn alpha_Sn z_Sn i0_Ni alpha_Ni z_Ni
-    eta_an = E_an - Erev(1);
-    eta_Cu = E_cat - Erev(2);
-    eta_Sn = E_cat - Erev(3);
-    eta_Ni = E_cat - Erev(4);
-    i_cat = i_BV(eta_Cu, i0_Cu, alpha_Cu, z_Cu, temp) + i_BV(eta_Sn, i0_Sn, alpha_Sn, z_Sn, temp) + i_BV(eta_Ni, i0_Ni, alpha_Ni, z_Ni, temp);
-    Y(1) = E_an - E_cat + I_an*(r_sol+r_hardware) - V_app;
-    Y(2) = I_an - i_BV(eta_an, i0_Fe, alpha_Fe, z_Fe, temp)*S_an;
-    Y(3) = I_an + i_cat*S_cat;
+    %Erev: Array of nernst potentials
+    global i0 alpha z
+    eta_cat = E_cat - [Erev(1:4) Erev(6:10)];
+    eta_an = [(E_an - Erev(5)) (E_an - Erev(11))];
+    i_cat = (i_BV(eta_cat, [i0(1:4) i0(6:10)], [alpha(1:4) alpha(6:10)], [z(1:4) z(6:10)], temp));
+    I_cat = i_cat*S_cat;
+    if sum(I_cat) == -Inf
+        error("Cathodic current infinite");
+    end
+    i_an = i_BV(eta_an, [i0(5) i0(11)], [alpha(5) alpha(11)], [z(5) z(11)], temp);
+    I_an = sum(i_an)*S_an;
+    if sum(I_an) == Inf
+        error("Anodic current infinite");
+    end
+    Y(1) = E_an - E_cat + I*(r_sol+r_hardware) - V_app;
+    Y(2) = I - I_an;
+    Y(3) = I_an + sum(I_cat);
 end
 
-function [func] = cor(Ecorr, Erev, temp)
-  %1 = Cu, 2= Fe, 3= Sn, 4 = Ni
-  global i0_Fe alpha_Fe z_Fe i0_Cu alpha_Cu z_Cu i0_Sn alpha_Sn z_Sn i0_Ni alpha_Ni z_Ni
-  i_Cu = i_BV(Ecorr-Erev(1), i0_Cu, alpha_Cu, z_Cu, temp);
-  i_Fe = i_BV(Ecorr-Erev(2), i0_Fe, alpha_Fe, z_Fe, temp);
-  i_Sn = i_BV(Ecorr-Erev(3), i0_Sn, alpha_Sn, z_Sn, temp);
-  i_Ni = i_BV(Ecorr-Erev(4), i0_Ni, alpha_Ni, z_Ni, temp);
-  func = i_Cu + i_Fe + i_Sn + i_Ni;
-  end
-%}
+function func = cor(Ecorr, Erev, S_PCB, temp)
+    %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
+    %Erev: Array of nernst potentials
+    global i0 alpha z
+    i_corr = i_BV(Ecorr-Erev, i0, alpha, z, temp);
+    %arrange surface areas in proper order
+    S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0 sum(S_PCB)];
+    if abs(sum(S_corr.*i_corr)) == Inf
+        disp(S_corr)
+        disp(i_corr)
+        error("Corrosion currents infinite");
+    end
+    %imag(sum(S_corr.*i_corr))
+    func = sum(S_corr.*i_corr);
+end

@@ -19,7 +19,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     R = 8.314; %J/(mol K)
     F = 96485.3329; %C/mol
     
-    e = realmin;
+    e = eps;%realmin;
     %{
     Reactions
     Cu2+ + 2e- <--> Cu(s) (1)
@@ -159,7 +159,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     
     %calculate total mass and wt fractions based on partial masses at
     %timestep
-    m_PCB = Cm(23:31).'
+    m_PCB = (Cm(23:31).');
     m_PCB_total = sum(m_PCB);
     wtfrac_PCB = m_PCB/m_PCB_total;
     %Convert weight to volume and volume fraction
@@ -219,16 +219,16 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
         Erev_cell, S_an, S_cat, temp);
     %initial guesses [I_an, E_an, E_cat]
     x0 = [0.2, 0.1, -0.1];
-    options = optimset('Display','on');
+    options = optimoptions(@fsolve, 'Display','final', 'MaxFunctionEvaluations', 3000);
     x = fsolve(solver, x0, options);
     I = x(1);
     E_an = x(2);
     E_cat = x(3);
     eta_cat = E_cat - Erev_cell;
     eta_an = E_an - Erev_cell;
-    i_cat = -subplus(-i_BV(eta_cat, i0, alpha, z, temp));
+    i_cat = (i_BV(eta_cat, i0, alpha, z, temp));
     I_cat = i_cat*S_cat;
-    i_an = subplus(i_BV(eta_an(5), i0(5), alpha(5), z(5), temp));
+    i_an = (i_BV(eta_an(5), i0(5), alpha(5), z(5), temp));
     I_an = i_an*S_an;
     I_cell = I_cat; %overall current for rxn i in cell
     I_cell(5) = I_cell(5)+I_an; 
@@ -280,7 +280,7 @@ function Y = cell_solver(I, E_an, E_cat, V_app, r_sol, r_hardware, Erev, S_an, S
     global i0 alpha z
     eta_cat = E_cat - [Erev(1:4) Erev(6:10)];
     eta_an = [(E_an - Erev(5)) (E_an - Erev(11))];
-    i_cat = -subplus(-i_BV(eta_cat, [i0(1:4) i0(6:10)], [alpha(1:4) alpha(6:10)], [z(1:4) z(6:10)], temp));
+    i_cat = (i_BV(eta_cat, [i0(1:4) i0(6:10)], [alpha(1:4) alpha(6:10)], [z(1:4) z(6:10)], temp));
     I_cat = i_cat*S_cat;
     if sum(I_cat) == -Inf
         error("Cathodic current infinite");
