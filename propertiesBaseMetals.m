@@ -2,7 +2,7 @@
 global R F e;
 R = 8.314; %J/(mol K)
 F = 96485.3329; %C/mol
-e = eps;%realmin;
+e = eps; %eps;realmin;
 %{
 Reactions
 Cu2+ + 2e- <--> Cu(s) (1)
@@ -36,17 +36,20 @@ z = [z_Cu z_Sn z_Al z_Pb z_Fe1 z_Fe2 z_Ag z_Au z_Pd z_H z_An];
 % exchange current densities
 global i0
 i0_Cu = 5E-5; %A/cm^2
-i0_Sn = 1E-6; %A/cm^2
-i0_Al = 1E-6; %A/cm^2
-i0_Pb = 1E-6; %A/cm^2
+i0_Sn = 0; %A/cm^2
+i0_Al = 0; %A/cm^2
+i0_Pb = 0; %A/cm^2
 i0_Fe1 = 5E-6; %A/cm^2
-i0_Fe2 = 5E-6; %A/cm^2
+i0_Fe2 = 5E-9; %A/cm^2
 i0_Ag = 0;%1E-7; %A/cm^2
 i0_Au = 0;%1E-7; %A/cm^2
 i0_Pd = 0;%1E-8; %A/cm^2
-i0_H = 1E-7; %A/cm^2
-i0_An = 1E-12; %A/m2
+i0_H = 0; %A/cm^2
+i0_An = 1E-12; %A/cm^2
 i0 = [i0_Cu i0_Sn i0_Al i0_Pb i0_Fe1 i0_Fe2 i0_Ag i0_Au i0_Pd i0_H i0_An];
+
+global iL
+iL = ones(1, 11)*0.02; %A/cm^2
 
 % charge transfer coefficients
 global alphas
@@ -79,6 +82,8 @@ Eo_H = 0; %V
 Eo_An = 1.23; %V
 Eo = [Eo_Cu Eo_Sn Eo_Al Eo_Pb Eo_Fe1 Eo_Fe2 Eo_Ag Eo_Au Eo_Pd Eo_H Eo_An];
 
+%mass transfer coefficients
+
 %activity coefficients of ions in solution
 global gamma
 gamma_Cu2 = 1;
@@ -95,7 +100,7 @@ gamma_Cl = 1;
 gamma = [gamma_Cu2 gamma_Sn2 gamma_Al3 gamma_Pb2 gamma_Fe2 gamma_Fe3...
     gamma_Ag gamma_Au gamma_Pd2 gamma_H];
 aH2 = 0.0001; %atm
-aO2 = 0.21; %atm
+aO2 = 0.008/32.01; %Molar solubility in water at 0.21 atm partial pressue 
 
 %Lamda infinity values NEED source for iron, tin, nickel rest are from ChE 331 notes
 lamda_Cu2 = 107.2; %S m^2/mol

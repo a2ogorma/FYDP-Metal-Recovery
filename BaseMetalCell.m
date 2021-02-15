@@ -21,12 +21,12 @@ A_cell = 500; %cm^2
 %Length b/w electrodes
 l = 100; %cm
 %Applied Voltage (potentiostat)
-V_app = 12; %V
+V_app = 3; %V
 %Extraction vessel parameters
 vol_lch = 200; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
 m_PCB_total = 80; %kg Mass of crushed PCBs
 r_particles = 0.001; %m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
-tfinal = 0.10; %s
+tfinal = 60*60; %s
 
 %Weight fraction composition of PCB
 %Inert Cu Sn Al Pb Fe 
@@ -93,7 +93,7 @@ Cm_i = [Ci_cell Ci_lch m_PCB];
 tspan = [0 tfinal];
 options = odeset('NonNegative',1:31);
 balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, V_app, n_particles, l, A_cell);
-[t, Cm] = ode15s(balance_solver, tspan, Cm_i);
+[t, Cm] = ode15s(balance_solver, tspan, Cm_i, options);
 
 for j = 1:1:length(t)
     disp(t(j))
@@ -108,9 +108,10 @@ for j = 1:1:length(t)
     r_hardware = 1; %ohms
     
     %solve cell currents and electrode potentials
-    onCathode = [1 1 1 1 0 1 1 1 1 1 0];
-    onAnode = -(onCathode-1);
-    solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol(j), r_hardware, Erev_cell(j,:), onCathode, S_an, S_cat, temp);
+    onCathode = [1 1 1 1 1 1 1 1 1 1 0];
+    onAnode = [0 0 0 0 1 0 0 0 0 0 1];
+    solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol(j), r_hardware, ...
+        Erev_cell(j,:), onCathode, onAnode, S_an, S_cat, temp);
     %initial guesses [I_an, E_an, E_cat]
     x0 = [0.2, 0.1, -0.1];
     options = optimoptions(@fsolve, 'Display','final', 'MaxFunctionEvaluations', 3000);
@@ -120,9 +121,9 @@ for j = 1:1:length(t)
     E_cat(j) = x(3);
     eta_cat(j,:) = E_cat(j) - Erev_cell(j,:);
     eta_an(j,:) = E_an(j) - Erev_cell(j,:);
-    i_cat(j,:) = onCathode.*i_BV(eta_cat(j,:), i0, alphas, z, temp);
+    i_cat(j,:) = onCathode.*i_BV(eta_cat(j,:), i0, iL, alphas, z, temp);
     I_cat(j,:) = i_cat(j,:)*S_cat;
-    i_an(j,:) = onAnode.*i_BV(eta_an(j,:), i0, alphas, z, temp);
+    i_an(j,:) = onAnode.*i_BV(eta_an(j,:), i0, iL, alphas, z, temp);
     I_an(j,:) = i_an(j,:)*S_an;
     I_cell(j,:) = I_cat(j,:)+I_an(j,:); %overall current for rxn i in cell
     
@@ -145,11 +146,17 @@ for j = 1:1:length(t)
     S_PCB(j,:) = subplus(S_PCB(j,:)*100^2); %convert m^2 to cm^2
     
     %solve extraction bed corrosion rate
+    on_PCB_cathode = [1 1 1 1 1 1 1 1 1 1 1];
+    on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
     j0 = 0; %Initial guess for E_corr, V
-    cor_solver = @(E_corr)cor(E_corr, Erev_lch(j,:), S_PCB(j,:), temp);
+    cor_solver = @(E_corr)cor(E_corr, Erev_lch(j,:), S_PCB(j,:), ...
+        on_PCB_cathode, on_PCB_anode, temp);
     E_corr(j) = fzero(cor_solver, j0);
-    i_corr(j,:) = i_BV(E_corr(j)-Erev_lch(j,:), i0, alphas, z, temp);
-    S_corr(j,:) = [S_PCB(j,2:5) sum(S_PCB(j,:)) S_PCB(j,6:9) 0 sum(S_PCB(j,:))];
+    i_BV_corr = i_BV(E_corr(j)-Erev_lch(j,:), i0, iL, alphas, z, temp);
+    i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
+    i_corr_cat = on_PCB_cathode.*(-subplus(-i_BV_corr));
+    i_corr(j,:) = i_corr_an + i_corr_cat;
+    S_corr(j,:) = [S_PCB(j,2:5) sum(S_PCB(j,2:9)) S_PCB(j,6:9) sum(S_PCB(j,2:9)) sum(S_PCB(j,2:9))];
     I_corr(j,:) = S_corr(j,:).*i_corr(j,:);
 end
 %{
@@ -200,18 +207,20 @@ title('Currents')
 legend('Corr','CopperCell','IronCell')
 %}
 
-function func = cor(Ecorr, Erev, S_PCB, temp)
+function func = cor(Ecorr, Erev, S_PCB, on_PCB_cat, on_PCB_an, temp)
     %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
     %Erev: Array of nernst potentials
-    global i0 alphas z
-    i_corr = i_BV(Ecorr-Erev, i0, alphas, z, temp);
+    global i0 iL alphas z
+    i_BV_corr = i_BV(Ecorr-Erev, i0, iL, alphas, z, temp);
+    i_corr_an = on_PCB_an.*subplus(i_BV_corr);
+    i_corr_cat = on_PCB_cat.*(-subplus(-i_BV_corr));
+    i_corr = i_corr_an + i_corr_cat;
     %arrange surface areas in proper order
-    S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0 sum(S_PCB)];
+    S_corr = [S_PCB(2:5) sum(S_PCB(2:9)) S_PCB(6:9) sum(S_PCB(2:9)) sum(S_PCB(2:9))];
     if abs(sum(S_corr.*i_corr)) == Inf
         disp(S_corr)
         disp(i_corr)
         error("Corrosion currents infinite");
     end
-    %imag(sum(S_corr.*i_corr))
     func = sum(S_corr.*i_corr);
 end

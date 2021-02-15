@@ -15,7 +15,20 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     %A_cell = cell cross sectional area;
     
     propertiesBaseMetals
-    
+    %{
+    Reactions
+    Cu2+ + 2e- <--> Cu(s) (1)
+    Sn2+ + 2e- <--> Sn(s) (2)
+    Al3+ + 3e- <--> Al(s) (3)
+    Pb2+ + 2e- <--> Pb(s) (4)
+    Fe3+ + e- <--> Fe2+ (5) (Fe1)
+    Fe2+ + 2e- <--> Fe(s) (6) (Fe2)
+    Ag+ + e- <--> Ag(s) (7)
+    Au+ + e- <--> Au(s) (8)
+    Pd2+ + 2e- <--> Pd(s) (9)
+    2H+ + e- <--> H2(g) (10)
+    4H+ + O2(g) + 4e- <--> 2H2O(l) (11)
+    %}
     %calculate total mass and wt fractions based on partial masses at
     %timestep
     m_PCB = (Cm(23:31).');
@@ -47,32 +60,41 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     
     %%%Electrowinning Cell solving%%%
     %solve cell currents and electrode potentials
-    onCathode = [1 1 1 1 0 1 1 1 1 1 0];
-    onAnode = -(onCathode-1);
+    onCathode = [1 1 1 1 1 1 1 1 1 1 0];
+    onAnode = [0 0 0 0 1 0 0 0 0 0 1];
     solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol, r_hardware,...
-        Erev_cell, onCathode, S_an, S_cat, temp);
+        Erev_cell, onCathode, onAnode, S_an, S_cat, temp);
     %initial guesses [I_an, E_an, E_cat]
     x0 = [0.2, 0.1, -0.1];
     options = optimoptions(@fsolve, 'Display','final', 'MaxFunctionEvaluations', 3000);
-    x = fsolve(solver, x0, options);
+    [x, fval] = fsolve(solver, x0, options);
+    fval
     I = x(1);
     E_an = x(2);
     E_cat = x(3);
     eta_cat = E_cat - Erev_cell;
     eta_an = E_an - Erev_cell;
-    i_cat = onCathode.*i_BV(eta_cat, i0, alphas, z, temp);
+    i_cat = onCathode.*i_BV(eta_cat, i0, iL, alphas, z, temp);
     I_cat = i_cat*S_cat;
-    i_an = onAnode.*i_BV(eta_an, i0, alphas, z, temp);
+    i_an = onAnode.*i_BV(eta_an, i0, iL, alphas, z, temp);
     I_an = i_an*S_an;
     I_cell = I_cat+I_an; %overall current for rxn i in cell
     
     %%%Leaching Unit solving%%%
     %solve extraction lch corrosion rate
-    j0 = Erev_lch(5)*0.90; %Initial guess for E_corr, V
-    cor_solver = @(E_corr)cor(E_corr, Erev_lch, S_PCB, temp);
-    E_corr = fzero(cor_solver, j0);
-    i_corr = i_BV(E_corr-Erev_lch, i0, alphas, z, temp);
-    S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0 sum(S_PCB)];
+    on_PCB_cathode = [1 1 1 1 1 1 1 1 1 1 1];
+    on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
+    fz_options = optimset('Display', 'final');
+    j0 = 0; %Initial guess for E_corr, V
+    cor_solver = @(E_corr)cor(E_corr, Erev_lch, S_PCB, on_PCB_cathode, ...
+        on_PCB_anode, temp);
+    [E_corr, fzval] = fsolve(cor_solver, j0, options);
+    fzval
+    i_BV_corr = i_BV(E_corr-Erev_lch, i0, iL, alphas, z, temp);
+    i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
+    i_corr_cat = on_PCB_cathode.*(-subplus(-i_BV_corr));
+    i_corr = i_corr_an + i_corr_cat;
+    S_corr = [S_PCB(2:5) sum(S_PCB(2:9)) S_PCB(6:9) sum(S_PCB(2:9)) sum(S_PCB(2:9))];
     I_corr = S_corr.*i_corr;
     
     %%%Solving for mass balance differentials%%%%
@@ -104,25 +126,27 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     dt(21) = ((Cm(10)-Cm(21))*Q + I_corr(10)/F/z(10) + I_corr(11)/F/z(11))/vol_lch; %H+
     dt(22) = (Cm(11)-Cm(22))*Q/vol_lch; %Cl-
     
-    %PCB metal mass balances
+    %PCB metal mass balances in kg units
     dt(23) = 0; %Inert material 
-    dt(24:31) = -mw(2:9).*[I_corr(1:4) I_corr(6:9)]/F./[z(1:4) z(6:9)]; %Solid metals Cu to Pd
+    dt(24:31) = -mw(2:9).*[I_corr(1:4) I_corr(6:9)]/F./[z(1:4) z(6:9)]/1000; %Solid metals Cu to Pd
     %display current time step
     t
 end
 
-function func = cor(Ecorr, Erev, S_PCB, temp)
+function func = cor(Ecorr, Erev, S_PCB, on_PCB_cat, on_PCB_an, temp)
     %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
     %Erev: Array of nernst potentials
-    global i0 alphas z
-    i_corr = i_BV(Ecorr-Erev, i0, alphas, z, temp);
+    global i0 alphas z iL
+    i_BV_corr = i_BV(Ecorr-Erev, i0, iL, alphas, z, temp);
+    i_corr_an = on_PCB_an.*subplus(i_BV_corr);
+    i_corr_cat = on_PCB_cat.*(-subplus(-i_BV_corr));
+    i_corr = i_corr_an + i_corr_cat;
     %arrange surface areas in proper order
-    S_corr = [S_PCB(2:5) sum(S_PCB) S_PCB(6:9) 0 sum(S_PCB)];
+    S_corr = [S_PCB(2:5) sum(S_PCB(2:9)) S_PCB(6:9) sum(S_PCB(2:9)) sum(S_PCB(2:9))];
     if abs(sum(S_corr.*i_corr)) == Inf
         disp(S_corr)
         disp(i_corr)
         error("Corrosion currents infinite");
     end
-    %imag(sum(S_corr.*i_corr))
     func = sum(S_corr.*i_corr);
 end
