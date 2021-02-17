@@ -1,10 +1,10 @@
-function Y = cell_solver(I, E_an, E_cat, V_app, r_sol, r_hardware, Erev, onCathode, onAnode, S_an, S_cat, temp)
+function Y = cell_solver(I, E_an, E_cat, V_app, r_sol, r_hardware, Erev, iL, onCathode, onAnode, S_an, S_cat, temp)
     %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
     %Erev: Array of nernst potentials
     %onCathode: Array of reaction locations based on Erev. 1
     %corresponds to reaction occurring on cathode, 0 corresponds to
     %reaction occuring on anode
-    global i0 iL alphas z
+    global i0 alphas z
     eta_cat = E_cat - Erev;
     eta_an = E_an - Erev;
     i_cat = onCathode.*(i_BV(eta_cat, i0, iL, alphas, z, temp));

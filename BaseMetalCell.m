@@ -1,9 +1,9 @@
 function results = BaseMetalCell(initSet,paramSet)
-    propertiesBaseMetals %calls all the property values as set in the applicable file. Note this is currently only applicable to base metals
+    solution = initSet.solution.type;
+    %for solution, 1 is for Cl- base metal system, 2 is for S2o3- precious metal system
+    propertiesMetals %calls all the property values as set in the applicable file.
     %{
 	Continuous stirred tank model for base metal extraction/recovery cell
-    Using ode45
-	To Add: Applied Voltage calc. Non-constant volume?
     Order of compounds: Inert Cu Sn Al Pb Fe Zn Ca Ni Ag Au Pd
     %}
     tic
@@ -70,15 +70,28 @@ function results = BaseMetalCell(initSet,paramSet)
         %resistance calculation for IR drops
         kappa = 1000*(CmStep(1)*lamda(1)+CmStep(2)*lamda(2)+CmStep(3)*lamda(3)+...
             CmStep(4)*lamda(4)+CmStep(5)*lamda(5)+CmStep(6)*lamda(6)+CmStep(7)*lamda(7)+...
-            CmStep(8)*lamda(8)+CmStep(9)*lamda(9)+CmStep(10)*lamda(10)+CmStep(11)*lamda(11));
+            CmStep(8)*lamda(8)+CmStep(9)*lamda(9)+CmStep(10)*lamda(10)+CmStep(11)*lamda(11)+CmStep(12)*lamda(12));
         r_sol(j) = l/A_cell/kappa*100; %ohms
         r_hardware = 1; %ohms
-
+    
+        %limiting current calculations
+        iL_cell(j,1) = z(1)*F*km(1)*CmStep(1)+eps;
+        iL_cell(j,2) = z(2)*F*km(2)*CmStep(2)+eps;
+        iL_cell(j,3) = z(3)*F*km(3)*CmStep(3)+eps;
+        iL_cell(j,4) = z(4)*F*km(4)*CmStep(4)+eps;
+        iL_cell(j,5) = z(5)*F*km(5)*CmStep(6)+eps;
+        iL_cell(j,6) = z(6)*F*km(6)*CmStep(5)+eps;
+        iL_cell(j,7) = z(7)*F*km(7)*CmStep(7)+eps;
+        iL_cell(j,8) = z(8)*F*km(8)*CmStep(8)+eps;
+        iL_cell(j,9) = z(9)*F*km(9)*CmStep(9)+eps;
+        iL_cell(j,10) = z(10)*F*km(10)*CmStep(10)+eps;
+        iL_cell(j,11) = z(11)*F*km(11)*CmStep(10)/4+eps;
+        
         %solve cell currents and electrode potentials
         onCathode = [1 1 1 1 1 1 1 1 1 1 0];
         onAnode = [0 0 0 0 1 0 0 0 0 0 1];
         solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol(j), r_hardware, ...
-            Erev_cell(j,:), onCathode, onAnode, S_an, S_cat, temp);
+            Erev_cell(j,:), iL_cell(j,:), onCathode, onAnode, S_an, S_cat, temp);
         %initial guesses [I_an, E_an, E_cat]
         x0 = [0.2, 0.1, -0.1];
         options = optimoptions(@fsolve, 'Display','final', 'MaxFunctionEvaluations', 3000);
@@ -94,7 +107,7 @@ function results = BaseMetalCell(initSet,paramSet)
         I_an(j,:) = i_an(j,:)*S_an;
         I_cell(j,:) = I_cat(j,:)+I_an(j,:); %overall current for rxn i in cell
 
-        m_PCB(j,:) = (Cm(j,23:31));
+        m_PCB(j,:) = (Cm(j,25:33));
         m_PCB_total(j) = sum(m_PCB(j,:));
         wtfrac_PCB(j,:) = m_PCB(j,:)/m_PCB_total(j);
         %Convert weight to volume and volume fraction
@@ -112,11 +125,23 @@ function results = BaseMetalCell(initSet,paramSet)
         S_PCB(j,:) = vfrac_PCB(j,:)*S_PCB_total(j); %array with exposed surface area of each component
         S_PCB(j,:) = subplus(S_PCB(j,:)*100^2); %convert m^2 to cm^2
 
+        iL_corr(j,1) = z(1)*F*km(1)*CmStep(23)+eps;
+        iL_corr(j,2) = z(2)*F*km(2)*CmStep(23)+eps;
+        iL_corr(j,3) = z(3)*F*km(3)*CmStep(23)+eps;
+        iL_corr(j,4) = z(4)*F*km(4)*CmStep(23)+eps;
+        iL_corr(j,5) = z(5)*F*km(5)*CmStep(17)+eps;
+        iL_corr(j,6) = z(6)*F*km(6)*CmStep(18)+eps;
+        iL_corr(j,7) = z(7)*F*km(7)*CmStep(24)+eps;
+        iL_corr(j,8) = z(8)*F*km(8)*CmStep(24)+eps;
+        iL_corr(j,9) = z(9)*F*km(9)*CmStep(24)+eps;
+        iL_corr(j,10) = z(10)*F*km(10)*CmStep(22)+eps;
+        iL_corr(j,11) = z(11)*F*km(11)*CmStep(22)/4+eps;
+        
         %solve extraction bed corrosion rate
         on_PCB_cathode = [1 1 1 1 1 1 1 1 1 1 1];
         on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
         j0 = 0; %Initial guess for E_corr, V
-        cor_solver = @(E_corr)cor(E_corr, Erev_lch(j,:), S_PCB(j,:), ...
+        cor_solver = @(E_corr)cor(E_corr, Erev_lch(j,:), iL_corr(j,:), S_PCB(j,:), ...
             on_PCB_cathode, on_PCB_anode, temp);
         E_corr(j) = fzero(cor_solver, j0);
         i_BV_corr = i_BV(E_corr(j)-Erev_lch(j,:), i0, iL, alphas, z, temp);
@@ -132,13 +157,14 @@ function results = BaseMetalCell(initSet,paramSet)
     results.init.initSet = initSet;
     results.init.n_particles = n_particles;
     
-    results.leaching.solutionConc = Cm(:,12:22);
+    results.leaching.solutionConc = Cm(:,13:24);
     results.leaching.E_corr = E_corr;
     results.leaching.Erev_lch = Erev_lch;
     results.leaching.i_corr = i_corr;
     results.leaching.I_corr = I_corr;
+    results.leaching.iL_corr = iL_corr;
     
-    results.electrowinning.solutionConc = Cm(:,1:11);
+    results.electrowinning.solutionConc = Cm(:,1:12);
     results.electrowinning.E_an = E_an;
     results.electrowinning.E_cat = E_cat;
     results.electrowinning.Erev_cell = Erev_cell;
@@ -150,6 +176,7 @@ function results = BaseMetalCell(initSet,paramSet)
     results.electrowinning.I_cat = I_cat;
     results.electrowinning.i_cat = i_cat;
     results.electrowinning.I_cell = I_cell;
+    results.electrowinning.iL_cell = iL_cell;
     results.electrowinning.r_sol = r_sol;
     
     results.PCB.r_particles = r_particles;
@@ -198,10 +225,10 @@ function results = BaseMetalCell(initSet,paramSet)
 end
 
 %%corrosion function
-function func = cor(Ecorr, Erev, S_PCB, on_PCB_cat, on_PCB_an, temp)
+function func = cor(Ecorr, Erev, iL, S_PCB, on_PCB_cat, on_PCB_an, temp)
     %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
     %Erev: Array of nernst potentials
-    global i0 iL alphas z
+    global i0 alphas z
     i_BV_corr = i_BV(Ecorr-Erev, i0, iL, alphas, z, temp);
     i_corr_an = on_PCB_an.*subplus(i_BV_corr);
     i_corr_cat = on_PCB_cat.*(-subplus(-i_BV_corr));
