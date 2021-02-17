@@ -21,7 +21,7 @@ function i_f = i_BV(overpot, i0, iL, a, z, temp)
         elseif overpot(idx)<=-0.15
             %cathodic mass-transfer kinetic mixed case, Tafel approx
             rhs = exp(log(i0(idx)/iL(idx)/z(idx))-(1-a(idx))*z(idx)*F*overpot(idx)/(R*temp));
-            j_BV(idx) = -(iL(idx)*rhs)/(1+rhs);
+            j_BV(idx) = -(iL(idx)*rhs)/(1+rhs); %note that iL currently always positive
         end
     end
     i_f = j_BV;

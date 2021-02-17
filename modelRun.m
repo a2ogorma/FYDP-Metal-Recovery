@@ -9,6 +9,7 @@ initSetBase.solidPCB.r_particles = 0.001;%m Radius of particles. Must be 2.873 (
 initSetBase.solidPCB.wtfrac_PCB(1:6) = [0.783 0.151 1.80E-2 1.57E-2 1.16E-2 0.781E-2];  
 %Ag Au Pd
 initSetBase.solidPCB.wtfrac_PCB(7:9) = [0.0130E-2 0.00580E-2 0.00286E-2];
+initSetBase.m_deposited = [0 0 0 0 0 0 0 0];
 
 %characteristics of starting solution
 initSetBase.solution.type = 1;%1 is Cl- base metal, 2 is S2O3 precious metal
@@ -60,10 +61,10 @@ paramSetBase.A_cell = 500; %cm^2
 %Length b/w electrodes
 paramSetBase.l = 100; %cm
 %Applied Voltage (potentiostat)
-paramSetBase.V_app = 7; %V
+paramSetBase.V_app = 3; %V
 %Extraction vessel parameters
 paramSetBase.vol_lch = 200; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
-paramSetBase.tfinal = 6*60*60; %s
+paramSetBase.tfinal = 10000; %s
 %%
 resultsBase = BaseMetalCell(initSetBase,paramSetBase)
 

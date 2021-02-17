@@ -48,7 +48,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     S_PCB = vfrac_PCB*S_PCB_total; %array with exposed surface area of each component
     S_PCB = subplus(S_PCB*100^2); %convert m^2 to cm^2
     
-    [Erev_cell, Erev_lch] = nernstPotential(Cm,temp,aH2,aO2);
+    [Erev_cell, Erev_lch, psbl_cell, psbl_lch] = nernstPotential(Cm,temp,aH2,aO2);
     
     %resistance calculation for IR drop in cell
     kappa = 1000*(Cm(1)*lamda(1)+Cm(2)*lamda(2)+Cm(3)*lamda(3)+...
@@ -75,7 +75,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     onCathode = [1 1 1 1 1 1 1 1 1 1 0];
     onAnode = [0 0 0 0 1 0 0 0 0 0 1];
     solver = @(x) cell_solver(x(1), x(2), x(3), V_app, r_sol, r_hardware,...
-        Erev_cell, iL_cell, onCathode, onAnode, S_an, S_cat, temp);
+        Erev_cell, iL_cell, onCathode, onAnode, psbl_cell, S_an, S_cat, temp);
     %initial guesses [I_an, E_an, E_cat]
     x0 = [0.2, 0.1, -0.1];
     options = optimoptions(@fsolve, 'Display','final', 'MaxFunctionEvaluations', 3000);
@@ -85,11 +85,15 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     E_cat = x(3);
     eta_cat = E_cat - Erev_cell;
     eta_an = E_an - Erev_cell;
-    i_cat = onCathode.*i_BV(eta_cat, i0, iL_cell, alphas, z, temp);
+    i_cat_temp = onCathode.*(i_BV(eta_cat, i0, iL_cell, alphas, z, temp));
+    i_cat_cat = psbl_cell(1,:).*-subplus(-i_cat_temp);
+    i_cat_an = psbl_cell(2,:).*subplus(i_cat_temp);
+    i_cat = i_cat_cat + i_cat_an;
     I_cat = i_cat*S_cat;
     i_an = onAnode.*i_BV(eta_an, i0, iL_cell, alphas, z, temp);
     I_an = i_an*S_an;
     I_cell = I_cat+I_an; %overall current for rxn i in cell
+    I_cell_err = sum(I_cell);
     
     %%%Leaching Unit solving%%%
     iL_corr(1) = z(1)*F*km(1)*Cm(23)+eps;
@@ -110,14 +114,16 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     fz_options = optimset('Display', 'final');
     j0 = 0; %Initial guess for E_corr, V
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, iL_corr, S_PCB, on_PCB_cathode, ...
-        on_PCB_anode, temp);
+        on_PCB_anode, psbl_lch, temp);
+    %E_corr = fminbnd(cor_solver,min(Erev_lch),max(Erev_lch));
     [E_corr, fzval] = fsolve(cor_solver, j0, options);
     i_BV_corr = i_BV(E_corr-Erev_lch, i0, iL_corr, alphas, z, temp);
     i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
-    i_corr_cat = on_PCB_cathode.*(-subplus(-i_BV_corr));
+    i_corr_cat = psbl_lch.*on_PCB_cathode.*(-subplus(-i_BV_corr));
     i_corr = i_corr_an + i_corr_cat;
     S_corr = [S_PCB(2:5) sum(S_PCB(2:9)) S_PCB(6:9) sum(S_PCB(2:9)) sum(S_PCB(2:9))];
     I_corr = S_corr.*i_corr;
+    I_corr_err = sum(I_corr);
     
     %%%Solving for mass balance differentials%%%%
     %Calculate concentration/mass balances
@@ -153,24 +159,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     %PCB metal mass balances in kg units
     dt(25) = 0; %Inert material 
     dt(26:33) = -mw(2:9).*[I_corr(1:4) I_corr(6:9)]/F./[z(1:4) z(6:9)]/1000; %Solid metals Cu to Pd
+    dt(34:41) = -mw(2:9).*[I_cat(1:4) I_cat(6:9)]/F./[z(1:4) z(6:9)]/1000; %solid metals Cu to Pd deposited
     %display current time step
     t
-end
-
-function func = cor(Ecorr, Erev, iL, S_PCB, on_PCB_cat, on_PCB_an, temp)
-    %units: I [A], E [V], V_app [V], r [ohms], S [cm^2]
-    %Erev: Array of nernst potentials
-    global i0 alphas z
-    i_BV_corr = i_BV(Ecorr-Erev, i0, iL, alphas, z, temp);
-    i_corr_an = on_PCB_an.*subplus(i_BV_corr);
-    i_corr_cat = on_PCB_cat.*(-subplus(-i_BV_corr));
-    i_corr = i_corr_an + i_corr_cat;
-    %arrange surface areas in proper order
-    S_corr = [S_PCB(2:5) sum(S_PCB(2:9)) S_PCB(6:9) sum(S_PCB(2:9)) sum(S_PCB(2:9))];
-    if abs(sum(S_corr.*i_corr)) == Inf
-        disp(S_corr)
-        disp(i_corr)
-        error("Corrosion currents infinite");
-    end
-    func = sum(S_corr.*i_corr);
 end
