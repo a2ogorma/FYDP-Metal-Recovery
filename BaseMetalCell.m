@@ -61,7 +61,7 @@ function results = BaseMetalCell(initSet,paramSet)
     tspan = [0 tfinal];
     options = odeset('NonNegative',1:41);
     balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, V_app, n_particles, l, A_cell);
-    [t, Cm] = ode45(balance_solver, tspan, Cm_i);
+    [t, Cm] = ode15s(balance_solver, tspan, Cm_i,options);
 
     for j = 1:1:length(t)
         disp(t(j))
