@@ -1,5 +1,5 @@
 metal = 1
-names = {'Copper'; 'Tin';'Aluminum';'Lead';'IronII';'IronIII';'Gold';'Silver';'Palladium';'Hydrogen';'Chloride'};
+names = {'Copper'; 'Tin';'Aluminum';'Lead';'IronII';'IronIII';'Silver';'Gold';'Palladium';'Hydrogen';'Chloride'};
 figure
 sgtitle(names(metal))
     
