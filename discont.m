@@ -1,33 +1,10 @@
-function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, mode, VI_app, n_particles, l, A_cell)
-    %t = time span (s)
-    %Cm = ionic concentration and solid mass vector (M, kg)
-    %Concentration order: Cu2 Sn2 Al3 Pb2 Fe2 Fe3 Ag Au Pd2 H Cl
-    %Solid mass order: Inert Cu Sn Al Pb Fe Ag Au Pd
-    %pres = system pressure (atm)
-    %vol_cell = electrowinning cell volume (L)
-    %vol_lch = leaching vessel volume (L)
-    %Q = circulation flowrate (L/s)
-    %S_an = cell anodic surface area (cm^2);
-    %S_cat = cell cathodic surface area (cm^2);
-    %V_app = applied voltage to cell (V);
-    %n_particles = number of PCB particles as calculated by radius/volume;
-    %l = cell distance between electrodes;
-    %A_cell = cell cross sectional area;
-    global F z i0 km alphas lamda rho mw aH2 aO2
-    %{
-    Reactions
-    Cu2+ + 2e- <--> Cu(s) (1)
-    Sn2+ + 2e- <--> Sn(s) (2)
-    Al3+ + 3e- <--> Al(s) (3)
-    Pb2+ + 2e- <--> Pb(s) (4)
-    Fe3+ + e- <--> Fe2+ (5) (Fe1)
-    Fe2+ + 2e- <--> Fe(s) (6) (Fe2)
-    Ag+ + e- <--> Ag(s) (7)
-    Au+ + e- <--> Au(s) (8)
-    Pd2+ + 2e- <--> Pd(s) (9)
-    2H+ + e- <--> H2(g) (10)
-    4H+ + O2(g) + 4e- <--> 2H2O(l) (11)
-    %}
+function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, mode, VI_app, n_particles, l, A_cell)
+    direction = [];
+    isterminal = zeros(1,13);
+    %isterminal(12) = 1;
+    %isterminal(13) = 1;
+    flag = ones(1,13);
+    global F z i0 km alphas lamda rho aH2 aO2
     if mode == 1 %potentiostat
         V_app = VI_app;
     elseif mode == 2 %galvanostat
@@ -82,7 +59,8 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     iLa_cell = -1*ones(1,11);
     iLa_cell(5) = z(5)*F*km(5)*Cm(5)+eps;
     
-    foptions = optimoptions(@fsolve, 'Display','final', 'MaxFunctionEvaluations', 3000);
+    foptions = optimoptions(@fsolve, 'Display','off', 'MaxFunctionEvaluations', 3000);
+    
     %%%Electrowinning Cell solving%%%
     %solve cell currents and electrode potentials
     onCathode = [1 1 1 1 1 1 1 1 1 1 0];
@@ -92,14 +70,14 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
             Erev_cell, iLa_cell, iLc_cell, onCathode, onAnode, psbl_cell, S_an, S_cat_p, temp);
         %initial guesses [I_an, E_an, E_cat]
         x0 = [0.2, 0.1, -0.1];
-        x = fsolve(solver, x0, foptions);
+        [x, ~, exitflag_cell, ~] = fsolve(solver, x0, foptions);
         I = x(1);
     elseif mode == 2
         solver = @(x) cell_solver_g(x(1), x(2), x(3), I_app, r_sol, r_hardware, ...
             Erev_cell, iLa_cell, iLc_cell, onCathode, onAnode, psbl_cell, S_an, S_cat_p, temp);
         %initial guesses [V, E_an, E_cat]
         x0 = [0.3, 0.1, -0.1];
-        x = fsolve(solver, x0, foptions);
+        [x, ~, exitflag_cell, ~] = fsolve(solver, x0, foptions);
         V = x(1);
     end
     E_an = x(2);
@@ -139,8 +117,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, iLa_corr, iLc_corr, S_PCB, ... 
         on_PCB_cathode, on_PCB_anode, psbl_lch, temp);
     %E_corr = fminbnd(cor_solver,min(Erev_lch),max(Erev_lch));
-    disp("Corr solver:");
-    E_corr = fsolve(cor_solver, j0, foptions);
+    [E_corr, ~, exitflag_cor, ~] = fsolve(cor_solver, j0, foptions);
     i_BV_corr = i_BV(E_corr-Erev_lch, i0, iLa_corr, iLc_corr, alphas, z, temp);
     i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
     i_corr_cat = psbl_lch.*on_PCB_cathode.*(-subplus(-i_BV_corr));
@@ -148,41 +125,11 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, S_cat, 
     S_corr = [S_PCB(2:5) sum(S_PCB(2:9)) S_PCB(6:9) sum(S_PCB(2:9)) sum(S_PCB(2:9))];
     I_corr = S_corr.*i_corr;
     
-    %%%Solving for mass balance differentials%%%%
-    %Calculate concentration/mass balances
-    dt = zeros(size(Cm));
-    %Electrowinning cell concentration balances
-    dt(1) = ((Cm(13)-Cm(1))*Q + I_cell(1)/F/z(1))/vol_cell; %Cu2+
-    dt(2) = ((Cm(14)-Cm(2))*Q + I_cell(2)/F/z(2))/vol_cell; %Sn2+
-    dt(3) = ((Cm(15)-Cm(3))*Q + I_cell(3)/F/z(3))/vol_cell; %Al3+
-    dt(4) = ((Cm(16)-Cm(4))*Q + I_cell(4)/F/z(4))/vol_cell; %Pb2+
-    dt(5) = ((Cm(17)-Cm(5))*Q + I_cell(6)/F/z(6)-I_cell(5)/F/z(5))/vol_cell; %Fe2+
-    dt(6) = ((Cm(18)-Cm(6))*Q + I_cell(5)/F/z(6))/vol_cell; %Fe3+
-    dt(7) = ((Cm(19)-Cm(7))*Q + I_cell(7)/F/z(7))/vol_cell; %Ag+
-    dt(8) = ((Cm(20)-Cm(8))*Q + I_cell(8)/F/z(8))/vol_cell; %Au+
-    dt(9) = ((Cm(21)-Cm(9))*Q + I_cell(9)/F/z(9))/vol_cell; %Pd2+
-    dt(10) = ((Cm(22)-Cm(10))*Q + I_cell(10)/F/z(10) + I_cell(11)/F/z(11))/vol_cell; %H+
-    dt(11) = (Cm(23)-Cm(11))*Q/vol_cell; %Cl-
-    dt(12) = ((Cm(24)-Cm(12))*Q - 2*I_cell(7)/F/z(7) - 2*I_cell(8)/F/z(8) - 4*I_cell(9)/F/z(9))/vol_cell; %S2O3-
-    
-    %Leaching vessel concentration balances
-    dt(13) = ((Cm(1)-Cm(13))*Q + I_corr(1)/F/z(1))/vol_lch; %Cu2+
-    dt(14) = ((Cm(2)-Cm(14))*Q + I_corr(2)/F/z(2))/vol_lch; %Sn2+
-    dt(15) = ((Cm(3)-Cm(15))*Q + I_corr(3)/F/z(3))/vol_lch; %Al3+
-    dt(16) = ((Cm(4)-Cm(16))*Q + I_corr(4)/F/z(4))/vol_lch; %Pb2+
-    dt(17) = ((Cm(5)-Cm(17))*Q + I_corr(6)/F/z(6)-I_corr(5)/F/z(5))/vol_lch; %Fe2+
-    dt(18) = ((Cm(6)-Cm(18))*Q + I_corr(5)/F/z(6))/vol_lch; %Fe3+
-    dt(19) = ((Cm(7)-Cm(19))*Q + I_corr(7)/F/z(7))/vol_lch; %Ag+
-    dt(20) = ((Cm(8)-Cm(20))*Q + I_corr(8)/F/z(8))/vol_lch; %Au+
-    dt(21) = ((Cm(9)-Cm(21))*Q + I_corr(9)/F/z(9))/vol_lch; %Pd2+
-    dt(22) = ((Cm(10)-Cm(22))*Q + I_corr(10)/F/z(10) + I_corr(11)/F/z(11))/vol_lch; %H+
-    dt(23) = (Cm(11)-Cm(23))*Q/vol_lch; %Cl-
-    dt(24) = ((Cm(12)-Cm(24))*Q - 2*I_corr(7)/F/z(7) - 2*I_corr(8)/F/z(8) - 4*I_corr(9)/F/z(9))/vol_cell; %S2O3-
-    
-    %PCB metal mass balances in kg units
-    dt(25) = 0; %Inert material 
-    dt(26:33) = -mw(2:9).*[I_corr(1:4) I_corr(6:9)]/F./[z(1:4) z(6:9)]/1000; %Solid metals Cu to Pd
-    dt(34:41) = -mw(2:9).*[I_cat(1:4) I_cat(6:9)]/F./[z(1:4) z(6:9)]/1000; %solid metals Cu to Pd deposited
-    %display current time step
-    t
+    flag(1:11) = E_corr-Erev_lch;
+    if exitflag_cell <= 0
+        flag(12) = 0;
+    end
+    if exitflag_cor <= 0
+        flag(13) = 0;
+    end
 end

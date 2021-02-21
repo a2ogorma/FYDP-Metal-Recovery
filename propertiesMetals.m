@@ -36,7 +36,7 @@ z = [z_Cu z_Sn z_Al z_Pb z_Fe1 z_Fe2 z_Ag z_Au z_Pd z_H z_An];
 % exchange current densities
 global i0
 if solution == 1 %Cl-, base metal system
-    active = [1 1 1 1 1 1 0 0 0 1 1];
+    active = [1 0 0 0 1 1 0 0 0 1 1];
 else %S2O3, precious metal system
     active = [0 0 0 0 1 0 1 1 1 1 1];
 end
@@ -54,7 +54,7 @@ i0_An = 1E-12; %A/cm^2
 i0 = active.*[i0_Cu i0_Sn i0_Al i0_Pb i0_Fe1 i0_Fe2 i0_Ag i0_Au i0_Pd i0_H i0_An];
 
 global km
-km = ones(1, 11)/(0.5*17367300); %mass transfer coefficient for limiting current (roughly results in limiting currents of 0.02)
+km = ones(1, 12)/(0.5*17367300); %mass transfer coefficient for limiting current (roughly results in limiting currents of 0.02)
 
 % charge transfer coefficients
 global alphas

@@ -1,10 +1,20 @@
-metal = 1
+propertiesMetals
+results = resultsBase;
+t = results.t;
+Cm = results.Cm;
+Erev_cell = results.electrowinning.Erev_cell;
+Erev_lch = results.leaching.Erev_lch;
+E_corr = results.leaching.E_corr;
+I_cell = results.electrowinning.I_cell;
+I_corr = results.leaching.I_corr;
+m_PCB = results.PCB.massRem;
+metal = 1;
 names = {'Copper'; 'Tin';'Aluminum';'Lead';'IronII';'IronIII';'Silver';'Gold';'Palladium';'Hydrogen';'Chloride'};
 figure
 sgtitle(names(metal))
     
 subplot(2,2,1)
-plot(t,Cm(:,metal),t,Cm(:,metal+11))
+plot(t,Cm(:,metal),t,Cm(:,metal+12))
 title('Concentrations')
 legend('Electrowinning','Leaching')
 xlabel('Time (s)')
@@ -25,9 +35,12 @@ xlabel('Time (s)')
 ylabel('Current (A)')
 
 %Solid mass order: Inert Cu Sn Al Pb Fe Ag Au Pd
+if metal > 5
+    metal = metal+1;
+end
 massRem = m_PCB(:,metal+1);
 massStart = m_PCB(1,metal+1);
-pctRem = massRem./massStart;
+pctRem = 100*massRem./massStart;
 massRec(1) = 0;
 for j = 2:1:length(I_cell(:,metal))
     massRec(j) = -mw(metal+1)*trapz(t(1:j), I_cell(1:j,metal))/F/z(metal)/1000;
