@@ -13,5 +13,5 @@ function func = cor(Ecorr, Erev, iLa, iLc, S_PCB, on_PCB_cat, on_PCB_an, temp)
         disp(i_corr)
         error("Corrosion currents infinite");
     end
-    func = sum(S_corr.*i_corr)*1000;
+    func = sum(S_corr.*i_corr);
 end

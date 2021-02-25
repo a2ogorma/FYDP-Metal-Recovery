@@ -4,7 +4,7 @@ paramSetBase = struct;
 paramSetBase.temp = 298; %K
 paramSetBase.pres = 1; % atm
 paramSetBase.vol_cell = 0.04; %L
-paramSetBase.Q = 0.03/60;%; % L/s (flowrate)
+paramSetBase.Q = 0.001/60;%; % L/s (flowrate)
 %Electrode areas
 paramSetBase.S_cat = 2*40*6*28*pi*0.03302/2.54; %cm^2, area of 6 x 28 cm wire mesh
 paramSetBase.S_an = 36; %cm^2
@@ -20,12 +20,15 @@ paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
 paramSetBase.V_app = 4; %V
 %Applied Current to Cell (Galvanostat)
 paramSetBase.I_app = 0.05; %A
-paramSetBase.tfinal = 72*3600; %s
+paramSetBase.tfinal = 30*3600; %s
 solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
 propertiesMetals;
 
+%Max current density for all rxns
+paramSetBase.iL_default = -1; %A/cm^2
 %fsolve options
-paramSetBase.foptions = optimoptions(@fsolve, 'Display','off', 'MaxFunctionEvaluations', 5000);
+paramSetBase.foptions = optimoptions(@fsolve, 'Display','off', ...
+    'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
 
 %cathode calculations
 thicc_cat = 0.01; %m, thickness of cathode
@@ -53,7 +56,7 @@ initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious me
 initSetBase.solution.Ci_Cu2_cell = 0.01;
 initSetBase.solution.Ci_Sn2_cell = 0.0;
 initSetBase.solution.Ci_Fe2_cell = 0.01;
-initSetBase.solution.Ci_Fe3_cell = 0.01;
+initSetBase.solution.Ci_Fe3_cell = 0.2;
 initSetBase.solution.Ci_Ag_cell = 0.0;
 initSetBase.solution.Ci_Au_cell = 0.0;
 initSetBase.solution.Ci_Pd2_cell = 0.0;

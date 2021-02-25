@@ -50,7 +50,7 @@ end
 i0_1 = 5E-5; %Cu
 i0_2 = 5E-6; %Sn
 i0_3 = 5E-6; %Fe3-> Fe2
-i0_4 = 5E-6; %Fe2 -> Fe(s)
+i0_4 = 7E-6; %Fe2 -> Fe(s)
 i0_6 = 4e-9; %AgCl
 i0_8 = 2E-8; %AuCl 
 i0_10 = 1E-10; % H2. need to identify suitable electrode to help limit hydrogen evolution. 

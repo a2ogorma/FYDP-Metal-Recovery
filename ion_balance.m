@@ -1,5 +1,5 @@
 function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
-    S_cat, mode, VI_app, n_particles, l, A_cell, solution, foptions)
+    S_cat, mode, VI_app, n_particles, l, A_cell, solution, iL_default, foptions)
     %t = time span (s)
     %Cm = ionic concentration and solid mass vector (M, kg)
     %pres = system pressure (atm)
@@ -82,12 +82,12 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     iLc_cat(2) = z(2)*F*km(2)*Cm(2)+eps;
     iLc_cat(3) = z(3)*F*km(4)*Cm(4)+eps;
     iLc_cat(4) = z(4)*F*km(3)*Cm(3)+eps;
-    iLc_cat(6) = -1;
+    iLc_cat(6) = iL_default;
     iLc_cat(8) = z(8)*F*km(10)*Cm(10)+eps;
     iLc_cat(10) = z(10)*F*km(8)*Cm(8)+eps;
     iLc_cat(11) = z(11)*F*km(8)*Cm(8)+eps;
     
-    iLa_cat = -1*ones(1,11);
+    iLa_cat = iL_default*ones(1,11);
     iLa_cat(3) = z(5)*F*km(3)*Cm(3)+eps;
     iLa_cat(6) = z(6)*F*km(9)*Cm(9)+eps;
     iLa_cat(8) = z(8)*F*km(9)*Cm(9)/4+eps;
@@ -110,12 +110,12 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     iLc_an(2) = z(2)*F*km(2)*Cm(12)+eps;
     iLc_an(3) = z(3)*F*km(4)*Cm(14)+eps;
     iLc_an(4) = z(4)*F*km(3)*Cm(13)+eps;
-    iLc_an(6) = -1;
+    iLc_an(6) = iL_default;
     iLc_an(8) = z(8)*F*km(10)*Cm(20)+eps;
     iLc_an(10) = z(10)*F*km(8)*Cm(18)+eps;
     iLc_an(11) = z(11)*F*km(8)*Cm(18)+eps;
     
-    iLa_an = -1*ones(1,11);
+    iLa_an = iL_default*ones(1,11);
     iLa_an(3) = z(5)*F*km(3)*Cm(13)+eps;
     iLa_an(6) = z(6)*F*km(9)*Cm(19)+eps;
     iLa_an(8) = z(8)*F*km(9)*Cm(19)/4+eps;
@@ -174,12 +174,12 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     iLc_corr(2) = z(2)*F*km(2)*Cm(22)+eps;
     iLc_corr(3) = z(3)*F*km(4)*Cm(24)+eps;
     iLc_corr(4) = z(4)*F*km(3)*Cm(23)+eps;
-    iLc_corr(6) = -1;
+    iLc_corr(6) = iL_default;
     iLc_corr(8) = z(8)*F*km(10)*Cm(30)+eps;
     iLc_corr(10) = z(10)*F*km(8)*Cm(18)+eps;
     iLc_corr(11) = z(11)*F*km(8)*Cm(18)+eps;
     
-    iLa_corr = -1*ones(1,11);
+    iLa_corr = iL_default*ones(1,11);
     iLa_corr(3) = z(3)*F*km(3)*Cm(23)+eps;
     
     if solution == 1
@@ -282,5 +282,5 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     dt(42) = -mw(6)*(I_cat(7)/F/z(7)+I_cat(8)/F/z(8))/1000; %Au(s)
     dt(43) = -mw(7)*I_cat(9)/F/z(9)/1000; %Pd(s)
     %display current time step
-    t
+    %t
 end

@@ -31,6 +31,8 @@ function results = BaseMetalCell(initSet,paramSet)
     %Extraction vessel parameters
     vol_lch = paramSet.vol_lch; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
     tfinal = paramSet.tfinal; %s
+    %Maximum current density default
+    iL_default = paramSet.iL_default; %A/cm^2
     
     %fsolve options
     foptions = paramSet.foptions;
@@ -70,11 +72,11 @@ function results = BaseMetalCell(initSet,paramSet)
     if mode == 1
         discont_event = @(t,Cm) discont(t, Cm, temp, pres, vol_cell, ...
             vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, l, A_cell, ...
-            solution, foptions);
+            solution, iL_default, foptions);
     elseif mode == 2
         discont_event = @(t,Cm) discont(t, Cm, temp, pres, vol_cell, ... 
             vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, l, A_cell, ...
-            solution, foptions);
+            solution, iL_default, foptions);
     end
     %}
     %solve concentration profiles
@@ -85,11 +87,11 @@ function results = BaseMetalCell(initSet,paramSet)
     if mode == 1
         balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, ...
             vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, l, A_cell, ...
-            solution, foptions);
+            solution, iL_default, foptions);
     elseif mode == 2
         balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, ...
             vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, l, A_cell, ...
-            solution, foptions);
+            solution, iL_default, foptions);
     end
     [t, Cm, te, Cme, ie] = ode15s(balance_solver, tspan, Cm_i, options);
     %[t, Cm] = ode45(balance_solver, tspan, Cm_i,options);
@@ -131,7 +133,7 @@ function results = BaseMetalCell(initSet,paramSet)
         iLc_cat(j,10) = z(10)*F*km(8)*CmStep(8)+eps;
         iLc_cat(j,11) = z(11)*F*km(8)*CmStep(8)+eps;
 
-        iLa_cat(j,:) = -1*ones(1,11);
+        iLa_cat(j,:) = iL_default*ones(1,11);
         iLa_cat(j,3) = z(5)*F*km(3)*CmStep(3)+eps;
         iLa_cat(j,6) = z(6)*F*km(9)*CmStep(9)+eps;
         iLa_cat(j,8) = z(8)*F*km(9)*CmStep(9)/4+eps;
@@ -154,12 +156,12 @@ function results = BaseMetalCell(initSet,paramSet)
         iLc_an(j,2) = z(2)*F*km(2)*CmStep(12)+eps;
         iLc_an(j,3) = z(3)*F*km(4)*CmStep(14)+eps;
         iLc_an(j,4) = z(4)*F*km(3)*CmStep(13)+eps;
-        iLc_an(j,6) = -1;
+        iLc_an(j,6) = iL_default;
         iLc_an(j,8) = z(8)*F*km(10)*CmStep(20)+eps;
         iLc_an(j,10) = z(10)*F*km(8)*CmStep(18)+eps;
         iLc_an(j,11) = z(11)*F*km(8)*CmStep(18)+eps;
 
-        iLa_an(j,:) = -1*ones(1,11);
+        iLa_an(j,:) = iL_default*ones(1,11);
         iLa_an(j,3) = z(5)*F*km(3)*CmStep(13)+eps;
         iLa_an(j,6) = z(6)*F*km(9)*CmStep(19)+eps;
         iLa_an(j,8) = z(8)*F*km(9)*CmStep(19)/4+eps;
@@ -177,8 +179,6 @@ function results = BaseMetalCell(initSet,paramSet)
             iLa_an(j,9) = z(9)*F*km(9)*CmStep(19)/4+eps;
         end
         
-        foptions = optimoptions(@fsolve, 'Display','off', ...
-        'MaxFunctionEvaluations', 4000);
         %%%Electrowinning Cell solving%%%
         %solve cell currents and electrode potentials
         onCathode = [1 1 1 1 1 0 1 1 1 1 1];
@@ -239,12 +239,12 @@ function results = BaseMetalCell(initSet,paramSet)
         iLc_corr(j,2) = z(2)*F*km(2)*CmStep(22)+eps;
         iLc_corr(j,3) = z(3)*F*km(4)*CmStep(24)+eps;
         iLc_corr(j,4) = z(4)*F*km(3)*CmStep(23)+eps;
-        iLc_corr(j,6) = -1;
+        iLc_corr(j,6) = iL_default;
         iLc_corr(j,8) = z(8)*F*km(10)*CmStep(30)+eps;
         iLc_corr(j,10) = z(10)*F*km(8)*CmStep(18)+eps;
         iLc_corr(j,11) = z(11)*F*km(8)*CmStep(18)+eps;
 
-        iLa_corr(j,:) = -1*ones(1,11);
+        iLa_corr(j,:) = iL_default*ones(1,11);
         iLa_corr(j,3) = z(3)*F*km(3)*CmStep(23)+eps;
 
         if solution == 1
@@ -276,8 +276,11 @@ function results = BaseMetalCell(initSet,paramSet)
         S_corr(j,:) = [S_PCB(2:3) sum(S_PCB(2:7)) S_PCB(4:5) S_PCB(5:6) S_PCB(6:7) sum(S_PCB(2:7)) sum(S_PCB(2:7))];
         I_corr(j,:) = S_corr(j,:).*i_corr(j,:);
         I_corr_err(j) = sum(I_corr(j,:));
+        cor_solver(E_corr(j))
+        E_corr(j)
+        t(j)
         
-        %dCm_dt(j,:) = balance_solver(t(j), CmStep');
+        dCm_dt(j,:) = balance_solver(t(j), CmStep');
     end
     
     %% Setting up results output struct
@@ -286,6 +289,7 @@ function results = BaseMetalCell(initSet,paramSet)
     results.init.n_particles = n_particles;
     results.Cm = Cm;
     results.t = t;
+    results.dCm_dt = dCm_dt;
     results.te = te;
     results.Cme = Cme;
     results.ie = ie;
