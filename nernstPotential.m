@@ -1,23 +1,69 @@
-function [Erev_cell, Erev_lch, psbl_cell, psbl_lch] = nernstPotential(Cm,temp,aH2,aO2)
-    global Eo R z F gamma e
+function [Erev_cat, Erev_an, Erev_lch] = nernstPotential(Cm,temp,solution)
+    global Eo R z F gamma e aH2 aO2
+    %{
+    Reactions
+    Cu2+ + 2e- <--> Cu(s) (1)
+    Sn2+ + 2e- <--> Sn(s) (2)
+    Fe3+ + e- <--> Fe2+ (3)
+    Fe2+ + 2e- <--> Fe(s) (4)
+    Ag+ + e- <--> Ag(s) (5B) OR [Ag(S2O3)2]3- + e- <--> Ag(s) + 2(S2O3)2- (5P)
+    AgCl(s) + e- <--> Ag(s) + Cl- (6)
+    Au3+ + 3e- <--> Au(s) (7B) OR [Au(S2O3)2]3- + e- <--> Au(s) + 2(S2O3)2- (7P)
+    [AuCl4]- + 3e- <--> Au(s) + 4Cl- (8)
+    Pd2+ + 2e- <--> Pd(s) (9B) OR [Pd(S2O3)4]6- + 2e- <--> Pd(s) + 4(S2O3)2- (9P)
+    2H+ + e- <--> H2(g) (10)
+    4H+ + O2(g) + 4e- <--> 2H2O(l) (11)
+    %}
     
-    psbl_cell = ones(2,11);
+    psbl_cat = ones(1,11);
+    psbl_an = ones(1,11);
     psbl_lch = ones(1,11);%applies only to rxns with aqueous reactants
+    
     %Nernst potentials - electrowinning cell
-    Erev_Cu_cell = Eo(1) - R*temp/(z(1)*F)*log(1/(gamma(1)*max(Cm(1),e)));
-    Erev_Sn_cell = Eo(2) - R*temp/(z(2)*F)*log(1/(gamma(2)*max(Cm(2),e)));
-    Erev_Al_cell = Eo(3) - R*temp/(z(3)*F)*log(1/(gamma(3)*max(Cm(3),e)));
-    Erev_Pb_cell = Eo(4) - R*temp/(z(4)*F)*log(1/(gamma(4)*max(Cm(4),e)));
-    Erev_Fe1_cell = Eo(5) - R*temp/(z(5)*F)*log(gamma(5)*max(Cm(5),e)/(gamma(6)*max(Cm(6),e)));
-    Erev_Fe2_cell = Eo(6) - R*temp/(z(6)*F)*log(1/(gamma(5)*max(Cm(5),e)));
-    Erev_Ag_cell = Eo(7) - R*temp/(z(7)*F)*log((gamma(12)*max(Cm(12),eps))^2/(gamma(7)*max(Cm(7),e)));
-    Erev_Au_cell = Eo(8) - R*temp/(z(8)*F)*log((gamma(12)*max(Cm(12),eps))^2/(gamma(8)*max(Cm(8),e)));
-    Erev_Pd_cell = Eo(9) - R*temp/(z(9)*F)*log((gamma(12)*max(Cm(12),eps))^4/(gamma(9)*max(Cm(9),e)));
-    Erev_H_cell = Eo(10) - R*temp/(z(10)*F)*log(aH2/(gamma(10)*max(Cm(10),e))^2);
-    Erev_An_cell = Eo(11) - R*temp/(z(11)*F)*log(1/(aO2*(gamma(10)*max(Cm(10),e))^4));
-    Erev_cell = [Erev_Cu_cell Erev_Sn_cell Erev_Al_cell Erev_Pb_cell Erev_Fe1_cell...
-    Erev_Fe2_cell Erev_Ag_cell Erev_Au_cell Erev_Pd_cell Erev_H_cell Erev_An_cell];
-
+    %Cathode:
+    Erev_1_cat = Eo(1) - R*temp/(z(1)*F)*log(1/(gamma(1)*max(Cm(1),e)));
+    Erev_2_cat = Eo(2) - R*temp/(z(2)*F)*log(1/(gamma(2)*max(Cm(2),e)));
+    Erev_3_cat = Eo(3) - R*temp/(z(3)*F)*log((gamma(3)*max(Cm(3),e))/(gamma(4)*max(Cm(4),e)));
+    Erev_4_cat = Eo(4) - R*temp/(z(4)*F)*log(1/(gamma(3)*max(Cm(3),e)));
+    Erev_6_cat = Eo(6) - R*temp/(z(6)*F)*log(gamma(9)*max(Cm(9),e));
+    Erev_8_cat = Eo(8) - R*temp/(z(8)*F)*log((gamma(9)*max(Cm(9),e))^4/(gamma(10)*max(Cm(10),e)));
+    Erev_10_cat = Eo(10) - R*temp/(z(10)*F)*log(aH2^0.5/(gamma(8)*max(Cm(8),e)));
+    Erev_11_cat = Eo(11) - R*temp/(z(11)*F)*log(1/(aO2^0.25*(gamma(8)*max(Cm(8),e))));
+    %Variable reactions:
+    if solution == 1 %Base metal system
+        Erev_5_cat = Eo(5) - R*temp/(z(5)*F)*log(1/(gamma(5)*max(Cm(5),e)));
+        Erev_7_cat = Eo(7) - R*temp/(z(7)*F)*log(1/(gamma(6)*max(Cm(6),e)));
+        Erev_9_cat = Eo(9) - R*temp/(z(9)*F)*log(1/(gamma(7)*max(Cm(7),e)));
+    else %Precious metal system
+        Erev_5_cat = Eo(5) - R*temp/(z(5)*F)*log((gamma(9)*max(Cm(9),e))^2/(gamma(5)*max(Cm(5),e)));
+        Erev_7_cat = Eo(7) - R*temp/(z(7)*F)*log((gamma(9)*max(Cm(9),e))^2/(gamma(6)*max(Cm(6),e)));
+        Erev_9_cat = Eo(9) - R*temp/(z(9)*F)*log((gamma(9)*max(Cm(9),e))^4/(gamma(7)*max(Cm(7),e)));
+    end
+    Erev_cat = [Erev_1_cat Erev_2_cat Erev_3_cat Erev_4_cat Erev_5_cat...
+        Erev_6_cat Erev_7_cat Erev_8_cat Erev_9_cat Erev_10_cat Erev_11_cat];
+    
+    %Anode:
+    Erev_1_an = Eo(1) - R*temp/(z(1)*F)*log(1/(gamma(1)*max(Cm(11),e)));
+    Erev_2_an = Eo(2) - R*temp/(z(2)*F)*log(1/(gamma(2)*max(Cm(12),e)));
+    Erev_3_an = Eo(3) - R*temp/(z(3)*F)*log((gamma(3)*max(Cm(13),e))/(gamma(4)*max(Cm(14),e)));
+    Erev_4_an = Eo(4) - R*temp/(z(4)*F)*log(1/(gamma(3)*max(Cm(13),e)));
+    Erev_6_an = Eo(6) - R*temp/(z(6)*F)*log(gamma(9)*max(Cm(19),e));
+    Erev_8_an = Eo(8) - R*temp/(z(8)*F)*log((gamma(9)*max(Cm(19),e))^4/(gamma(10)*max(Cm(20),e)));
+    Erev_10_an = Eo(10) - R*temp/(z(10)*F)*log(aH2^0.5/(gamma(8)*max(Cm(18),e)));
+    Erev_11_an = Eo(11) - R*temp/(z(11)*F)*log(1/(aO2^0.25*(gamma(8)*max(Cm(18),e))));
+    %Variable reactions:
+    if solution == 1 %Base metal system
+        Erev_5_an = Eo(5) - R*temp/(z(5)*F)*log(1/(gamma(5)*max(Cm(15),e)));
+        Erev_7_an = Eo(7) - R*temp/(z(7)*F)*log(1/(gamma(6)*max(Cm(16),e)));
+        Erev_9_an = Eo(9) - R*temp/(z(9)*F)*log(1/(gamma(7)*max(Cm(17),e)));
+    else %Precious metal system
+        Erev_5_an = Eo(5) - R*temp/(z(5)*F)*log((gamma(9)*max(Cm(19),e))^2/(gamma(5)*max(Cm(15),e)));
+        Erev_7_an = Eo(7) - R*temp/(z(7)*F)*log((gamma(9)*max(Cm(19),e))^2/(gamma(6)*max(Cm(16),e)));
+        Erev_9_an = Eo(9) - R*temp/(z(9)*F)*log((gamma(9)*max(Cm(19),e))^4/(gamma(7)*max(Cm(17),e)));
+    end
+    Erev_an = [Erev_1_an Erev_2_an Erev_3_an Erev_4_an Erev_5_an...
+        Erev_6_an Erev_7_an Erev_8_an Erev_9_an Erev_10_an Erev_11_an];
+    %{
     if max(Cm(1),e) == e
         psbl_cell(1,1) = 0;
     end
@@ -66,22 +112,29 @@ function [Erev_cell, Erev_lch, psbl_cell, psbl_lch] = nernstPotential(Cm,temp,aH
     if max(Cm(41),e) == e
         psbl_cell(2,9) = 0;
     end
-    
+    %}
     %Nernst potentials - leaching vessel
-    Erev_Cu_lch = Eo(1) - R*temp/(z(1)*F)*log(1/(gamma(1)*max(Cm(13),e)));
-    Erev_Sn_lch = Eo(2) - R*temp/(z(2)*F)*log(1/(gamma(2)*max(Cm(14),e)));
-    Erev_Al_lch = Eo(3) - R*temp/(z(3)*F)*log(1/(gamma(3)*max(Cm(15),e)));
-    Erev_Pb_lch = Eo(4) - R*temp/(z(4)*F)*log(1/(gamma(4)*max(Cm(16),e)));
-    Erev_Fe1_lch = Eo(5) - R*temp/(z(5)*F)*log(gamma(5)*max(Cm(17),e)/gamma(6)*max(Cm(18),e));
-    Erev_Fe2_lch = Eo(6) - R*temp/(z(6)*F)*log(1/(gamma(5)*max(Cm(17),e)));
-    Erev_Ag_lch = Eo(7) - R*temp/(z(7)*F)*log((gamma(12)*max(Cm(24),eps))^2/(gamma(7)*max(Cm(19),e)));
-    Erev_Au_lch = Eo(8) - R*temp/(z(8)*F)*log((gamma(12)*max(Cm(24),eps))^2/(gamma(8)*max(Cm(20),e)));
-    Erev_Pd_lch = Eo(9) - R*temp/(z(9)*F)*log((gamma(12)*max(Cm(24),eps))^4/(gamma(9)*max(Cm(21),e)));
-    Erev_H_lch = Eo(10) - R*temp/(z(10)*F)*log(aH2/(gamma(10)*max(Cm(22),e))^2);
-    Erev_An_lch = Eo(11) - R*temp/(z(11)*F)*log(1/(aO2*(gamma(10)*max(Cm(22),e))^4));
-    Erev_lch = [Erev_Cu_lch Erev_Sn_lch Erev_Al_lch Erev_Pb_lch Erev_Fe1_lch...
-        Erev_Fe2_lch Erev_Ag_lch Erev_Au_lch Erev_Pd_lch Erev_H_lch Erev_An_lch];
-    
+    Erev_1_lch = Eo(1) - R*temp/(z(1)*F)*log(1/(gamma(1)*max(Cm(21),e)));
+    Erev_2_lch = Eo(2) - R*temp/(z(2)*F)*log(1/(gamma(2)*max(Cm(22),e)));
+    Erev_3_lch = Eo(3) - R*temp/(z(3)*F)*log((gamma(3)*max(Cm(23),e))/(gamma(4)*max(Cm(24),e)));
+    Erev_4_lch = Eo(4) - R*temp/(z(4)*F)*log(1/(gamma(3)*max(Cm(23),e)));
+    Erev_6_lch = Eo(6) - R*temp/(z(6)*F)*log(gamma(9)*max(Cm(29),e));
+    Erev_8_lch = Eo(8) - R*temp/(z(8)*F)*log((gamma(9)*max(Cm(29),e))^4/(gamma(10)*max(Cm(30),e)));
+    Erev_10_lch = Eo(10) - R*temp/(z(10)*F)*log(aH2^0.5/(gamma(8)*max(Cm(28),e)));
+    Erev_11_lch = Eo(11) - R*temp/(z(11)*F)*log(1/(aO2^0.25*(gamma(8)*max(Cm(28),e))));
+    %Variable reactions:
+    if solution == 1 %Base metal system
+        Erev_5_lch = Eo(5) - R*temp/(z(5)*F)*log(1/(gamma(5)*max(Cm(25),e)));
+        Erev_7_lch = Eo(7) - R*temp/(z(7)*F)*log(1/(gamma(6)*max(Cm(26),e)));
+        Erev_9_lch = Eo(9) - R*temp/(z(9)*F)*log(1/(gamma(7)*max(Cm(27),e)));
+    else %Precious metal system
+        Erev_5_lch = Eo(5) - R*temp/(z(5)*F)*log((gamma(9)*max(Cm(29),e))^2/(gamma(5)*max(Cm(25),e)));
+        Erev_7_lch = Eo(7) - R*temp/(z(7)*F)*log((gamma(9)*max(Cm(29),e))^2/(gamma(6)*max(Cm(26),e)));
+        Erev_9_lch = Eo(9) - R*temp/(z(9)*F)*log((gamma(9)*max(Cm(29),e))^4/(gamma(7)*max(Cm(27),e)));
+    end
+    Erev_lch = [Erev_1_lch Erev_2_lch Erev_3_lch Erev_4_lch Erev_5_lch...
+        Erev_6_lch Erev_7_lch Erev_8_lch Erev_9_lch Erev_10_lch Erev_11_lch];
+    %{
     if max(Cm(13),e) == e
         psbl_lch(1) = 0;
     end
@@ -107,3 +160,4 @@ function [Erev_cell, Erev_lch, psbl_cell, psbl_lch] = nernstPotential(Cm,temp,aH
         psbl_lch(9) = 0;
     end
 end
+        %}

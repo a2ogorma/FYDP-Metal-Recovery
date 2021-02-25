@@ -1,4 +1,4 @@
-function Y = cell_solver_g(V, E_an, E_cat, I_app, r_sol, r_hardware, Erev, iLa, iLc, onCathode, onAnode, psbl_cell, S_an, S_cat_p, temp)
+function Y = cell_solver_g(V, E_an, E_cat, I_app, r_sol, r_hardware, Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLc_an, onCathode, onAnode, S_an, S_cat_p, temp)
     %potentiostat
     %units: I [A], E [V],  r [ohms], S [cm^2]
     %Erev: Array of nernst potentials
@@ -7,23 +7,24 @@ function Y = cell_solver_g(V, E_an, E_cat, I_app, r_sol, r_hardware, Erev, iLa, 
     %reaction occuring on anode
     global i0 alphas z
     S_cat = sum(S_cat_p);
-    eta_cat = E_cat - Erev;
-    eta_an = E_an - Erev;
-    i_cat_temp = onCathode.*(i_BV(eta_cat, i0, iLa, iLc, alphas, z, temp));
-    i_cat_cat = psbl_cell(1,:).*-subplus(-i_cat_temp);
-    i_cat_an = psbl_cell(2,:).*subplus(i_cat_temp);
+    eta_cat = E_cat - Erev_cat;
+    eta_an = E_an - Erev_an;
+    i_cat = onCathode.*(i_BV(eta_cat, i0, iLa_cat, iLc_cat, alphas, z, temp));
+    i_cat_cat = -subplus(-i_cat);
+    i_cat_an = subplus(i_cat);
     I_cat_cat = i_cat_cat*S_cat;
-    I_cat_an = i_cat_an.*[S_cat_p(1:4) S_cat S_cat_p(5:8) 0 S_cat];
+    I_cat_cat(6) = 0; %silver can't be plated from AgCl(s)
+    I_cat_an = i_cat_an.*[S_cat_p(1:2) S_cat S_cat_p(3:4) S_cat_p(4:5) S_cat_p(5:6) 0 S_cat];
     I_cat = I_cat_cat+I_cat_an;
     if sum(I_cat) == -Inf
         error("Cathodic current infinite");
     end
-    i_an = onAnode.*i_BV(eta_an, i0, iLa, iLc, alphas, z, temp);
+    i_an = onAnode.*i_BV(eta_an, i0, iLa_an, iLc_an, alphas, z, temp);
     I_an = i_an*S_an;
     if sum(I_an) == Inf
         error("Anodic current infinite");
     end
-    Y(1) = E_an - E_cat + I_app*(r_sol+r_hardware) - V;
-    Y(2) = I_app - sum(I_an);
-    Y(3) = sum(I_an) + sum(I_cat);
+    Y(1) = (E_an - E_cat + I_app*(r_sol+r_hardware) - V)*1E6;
+    Y(2) = (I_app - sum(I_an))*1E6;
+    Y(3) = (sum(I_an) + sum(I_cat))*1E6;
 end
