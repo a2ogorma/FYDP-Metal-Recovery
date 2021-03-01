@@ -3,7 +3,7 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     direction = [];
     isterminal = zeros(1,13);
     isterminal(12) = 1;
-    isterminal(13) = 1;
+    isterminal(13) = 0;
     flag = ones(1,13);
     disp(['Checking for fsolve failure at t = ' num2str(t)]);
     global F z i0 km alphas lamda rho mw aH2 aO2
@@ -110,37 +110,20 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     %solve cell currents and electrode potentials
     onCathode = [1 1 1 1 1 0 1 1 1 1 1];
     onAnode = [0 0 1 0 0 0 0 0 0 0 1];
+    global x0 %initial guesses [I_an, E_an, E_cat] for mode 1 or [V, E_an, E_cat] for mode 2
     if mode == 1
         solver = @(x) cell_solver_p(x(1), x(2), x(3), V_app, r_sol, r_hardware, ...
-            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLa_cat, onCathode, ...
+            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLc_an, onCathode, ...
             onAnode, S_an, S_cat_p, temp);
-        %initial guesses [I_an, E_an, E_cat]
-        x0 = [0.2, 0.1, -0.1];
         [x,~,exitflag_cell,o_cell] = fsolve(solver, x0, foptions);
         I = x(1);
     elseif mode == 2
         solver = @(x) cell_solver_g(x(1), x(2), x(3), I_app, r_sol, r_hardware, ...
-            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLa_cat, onCathode, ...
+            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLc_an, onCathode, ...
             onAnode, S_an, S_cat_p, temp);
-        %initial guesses [V, E_an, E_cat]
-        x0 = [2, 0.5, -0.5];
         [x,~,exitflag_cell,o_cell] = fsolve(solver, x0, foptions);
         V = x(1);
     end
-    E_an = x(2);
-    E_cat = x(3);
-    eta_cat = E_cat - Erev_cat;
-    eta_an = E_an - Erev_an;
-    i_cat = onCathode.*(i_BV(eta_cat, i0, iLa_cat, iLc_cat, alphas, z, temp));
-    i_cat_cat = -subplus(-i_cat);
-    i_cat_an = subplus(i_cat);
-    I_cat_cat = i_cat_cat*S_cat;
-    I_cat_cat(6) = 0; %silver can't be plated from AgCl(s)
-    I_cat_an = i_cat_an.*[S_cat_p(1:2) S_cat S_cat_p(3:4) S_cat_p(4:5) S_cat_p(5:6) 0 S_cat];
-    I_cat = I_cat_cat+I_cat_an;
-    i_an = onAnode.*i_BV(eta_an, i0, iLa_an, iLc_an, alphas, z, temp);
-    I_an = i_an*S_an;
-    I_cell = I_cat+I_an; %overall current for rxn i in cell
     
     %%%Leaching Unit solving%%%
     iLc_corr(1) = z(1)*F*km(1)*Cm(21)+eps;
@@ -171,19 +154,15 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     %solve extraction lch corrosion rate
     on_PCB_cathode = [1 1 1 1 1 0 1 1 1 1 1];
     on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
-    j0 = (Erev_lch(1)+Erev_lch(5))/2; %Initial guess for E_corr, V
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, iLa_corr, iLc_corr, S_PCB, ... 
         on_PCB_cathode, on_PCB_anode, temp);
-    %E_corr = fminbnd(cor_solver,min(Erev_lch),max(Erev_lch));
-    [E_corr,~,exitflag_cor,o_cor] = fsolve(cor_solver, j0, foptions);
-    i_BV_corr = i_BV(E_corr-Erev_lch, i0, iLa_corr, iLc_corr, alphas, z, temp);
-    i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
-    i_corr_cat = on_PCB_cathode.*(-subplus(-i_BV_corr));
-    i_corr = i_corr_an + i_corr_cat;
-    %arrange surface areas in proper order
-    S_corr = [S_PCB(2:3) sum(S_PCB(2:7)) S_PCB(4:5) S_PCB(5:6) S_PCB(6:7) sum(S_PCB(2:7)) sum(S_PCB(2:7))];
-    I_corr = S_corr.*i_corr;
-    E_corr
+    j0 = (randperm(20)-1)/19*(max(Erev_lch)-min(Erev_lch))+min(Erev_lch); %Initial guess for E_corr, V b/w max and min Nernst potentials
+    for k = 1:1:numel(j0)
+        [E_corr,~,exitflag_cor,~] = fsolve(cor_solver, j0(k), foptions);
+        if exitflag_cor >= 1
+            break
+        end
+    end
     flag(1:11) = E_corr-Erev_lch;
     if exitflag_cell <= 0
         flag(12) = 0;
@@ -192,5 +171,12 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     if exitflag_cor <= 0
         flag(13) = 0;
         disp(['Leaching solver failed. Message: ' o_cor.message 'Cor result:' num2str(cor_solver(E_corr))]);
+        %{
+        e_corr = [E_corr-0.5:0.01:E_corr+0.5];
+        for i = 1:1:numel(e_corr)
+            c(i) = cor_solver(e_corr(i));
+        end
+        plot(e_corr, c,'b-', E_corr, cor_solver(E_corr), 'r.');
+        %}
     end
 end

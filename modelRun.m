@@ -1,5 +1,8 @@
 clear all
 %% Base metal system parameters
+solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
+propertiesMetals;
+
 paramSetBase = struct;
 paramSetBase.temp = 298; %K
 paramSetBase.pres = 1; % atm
@@ -17,12 +20,11 @@ paramSetBase.vol_lch = 0.09;
 
 paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
-paramSetBase.V_app = 4; %V
+paramSetBase.V_app = 3.5; %V
 %Applied Current to Cell (Galvanostat)
 paramSetBase.I_app = 0.05; %A
-paramSetBase.tfinal = 30*3600; %s
-solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
-propertiesMetals;
+paramSetBase.tfinal = 10*3600; %s
+
 
 %Max current density for all rxns
 paramSetBase.iL_default = -1; %A/cm^2
@@ -54,18 +56,18 @@ initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious me
 %initial concentrations in mol/L
 %Cell Concentrations (recovery)
 initSetBase.solution.Ci_Cu2_cell = 0.01;
-initSetBase.solution.Ci_Sn2_cell = 0.0;
+initSetBase.solution.Ci_Sn2_cell = 0.01;
 initSetBase.solution.Ci_Fe2_cell = 0.01;
 initSetBase.solution.Ci_Fe3_cell = 0.2;
-initSetBase.solution.Ci_Ag_cell = 0.0;
-initSetBase.solution.Ci_Au_cell = 0.0;
+initSetBase.solution.Ci_Ag_cell = 0.000001;
+initSetBase.solution.Ci_Au3_cell = 0.0;
 initSetBase.solution.Ci_Pd2_cell = 0.0;
 initSetBase.solution.Ci_H_cell = 0.5;
 %Calculation to ensure electrolyte has net neutral charge
 initSetBase.solution.Ci_Cl_cell = 2*(initSetBase.solution.Ci_Cu2_cell+initSetBase.solution.Ci_Fe2_cell)+initSetBase.solution.Ci_H_cell+3*initSetBase.solution.Ci_Fe3_cell;
 initSetBase.solution.Ci_AuCl4_cell = 0.0;
 initSetBase.solution.Ci_cell = [initSetBase.solution.Ci_Cu2_cell initSetBase.solution.Ci_Sn2_cell initSetBase.solution.Ci_Fe2_cell ...
-    initSetBase.solution.Ci_Fe3_cell initSetBase.solution.Ci_Ag_cell initSetBase.solution.Ci_Au_cell ...
+    initSetBase.solution.Ci_Fe3_cell initSetBase.solution.Ci_Ag_cell initSetBase.solution.Ci_Au3_cell ...
     initSetBase.solution.Ci_Pd2_cell initSetBase.solution.Ci_H_cell initSetBase.solution.Ci_Cl_cell initSetBase.solution.Ci_AuCl4_cell];
 
 %leching vessel concentrations (extraction)
@@ -74,80 +76,94 @@ initSetBase.solution.Ci_Sn2_lch = initSetBase.solution.Ci_Sn2_cell;
 initSetBase.solution.Ci_Fe2_lch = initSetBase.solution.Ci_Fe2_cell;
 initSetBase.solution.Ci_Fe3_lch = initSetBase.solution.Ci_Fe3_cell;
 initSetBase.solution.Ci_Ag_lch = initSetBase.solution.Ci_Ag_cell;
-initSetBase.solution.Ci_Au_lch = initSetBase.solution.Ci_Au_cell;
+initSetBase.solution.Ci_Au3_lch = initSetBase.solution.Ci_Au3_cell;
 initSetBase.solution.Ci_Pd2_lch = initSetBase.solution.Ci_Pd2_cell;
 initSetBase.solution.Ci_H_lch = initSetBase.solution.Ci_H_cell;
 initSetBase.solution.Ci_Cl_lch = 2*(initSetBase.solution.Ci_Cu2_lch+initSetBase.solution.Ci_Fe2_lch)+initSetBase.solution.Ci_H_lch+3*initSetBase.solution.Ci_Fe3_lch;
 initSetBase.solution.Ci_AuCl4_lch = initSetBase.solution.Ci_AuCl4_cell;
 initSetBase.solution.Ci_lch = [initSetBase.solution.Ci_Cu2_lch initSetBase.solution.Ci_Sn2_lch initSetBase.solution.Ci_Fe2_lch ... 
-    initSetBase.solution.Ci_Fe3_lch initSetBase.solution.Ci_Ag_lch initSetBase.solution.Ci_Au_lch ...
+    initSetBase.solution.Ci_Fe3_lch initSetBase.solution.Ci_Ag_lch initSetBase.solution.Ci_Au3_lch ...
     initSetBase.solution.Ci_Pd2_lch initSetBase.solution.Ci_H_lch initSetBase.solution.Ci_Cl_lch initSetBase.solution.Ci_AuCl4_lch];
 
 
 %%
-resultsBase = BaseMetalCell(initSetBase,paramSetBase);
+disp("Modelling Base Metal Extraction and Recovery");
+resultsBase = metalER(initSetBase,paramSetBase);
 
 %% Precious metal section (for connection)
-%{ 
+solution = 2; %1 is Cl- base metal, 2 is S2O3 precious metal
+propertiesMetals;
+z = numel(resultsBase.t);
 %characteristics of solid PCB input
-initSetPrecious.solidPCB.m_PCB_total = resultsBase.PCB.massTotal(end);%kg Mass of crushed PCBs
-initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(end);%m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
+initSetPrecious.solidPCB.m_PCB_total = resultsBase.PCB.massTotal(z);%kg Mass of crushed PCBs
+initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(z);%m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
+initSetPrecious.m_deposited = [0 0 0 0.1 0 0];
 %Weight fraction composition of PCB
 %Inert Cu Sn Al Pb Fe 
-initSetPrecious.solidPCB.wtfrac_PCB = resultsBase.PCB.wtfrac_PCB(end,:);
+initSetPrecious.solidPCB.wtfrac_PCB = resultsBase.PCB.wtfrac_PCB(z,:);
 
 %characteristics of starting solution
 initSetPrecious.solution.type = 2;%1 is Cl- base metal, 2 is S2O3 precious metal
 %initial concentrations in mol/L
 %Cell Concentrations (recovery)
-initSetPrecious.solution.Ci_Cu2_cell = 0;
+initSetPrecious.solution.Ci_Cu2_cell = 0.01;
 initSetPrecious.solution.Ci_Sn2_cell = 0.0;
-initSetPrecious.solution.Ci_Al3_cell = 0.0;
-initSetPrecious.solution.Ci_Pb2_cell = 0.0;
-initSetPrecious.solution.Ci_Fe2_cell = 0.5;
-initSetPrecious.solution.Ci_Fe3_cell = 0.1;
+initSetPrecious.solution.Ci_Fe2_cell = 0.1;
+initSetPrecious.solution.Ci_Fe3_cell = 0.5;
 initSetPrecious.solution.Ci_Ag_cell = 0.0;
-initSetPrecious.solution.Ci_Au_cell = 0.0;
+initSetPrecious.solution.Ci_Au3_cell = 0.0;
 initSetPrecious.solution.Ci_Pd2_cell = 0.0;
 initSetPrecious.solution.Ci_H_cell = 0.5;
-initSetPrecious.solution.Ci_Cl_cell = 0;
 initSetPrecious.solution.Ci_S2O3_cell = 0.5;
-initSetPrecious.solution.Ci_cell = [initSetPrecious.solution.Ci_Cu2_cell initSetPrecious.solution.Ci_Sn2_cell initSetPrecious.solution.Ci_Al3_cell initSetPrecious.solution.Ci_Pb2_cell initSetPrecious.solution.Ci_Fe2_cell ...
-    initSetPrecious.solution.Ci_Fe3_cell initSetPrecious.solution.Ci_Ag_cell initSetPrecious.solution.Ci_Au_cell initSetPrecious.solution.Ci_Pd2_cell initSetPrecious.solution.Ci_H_cell initSetPrecious.solution.Ci_Cl_cell initSetPrecious.solution.Ci_S2O3_cell];
+initSetPrecious.solution.Ci_AuCl4_cell = 0;
+initSetPrecious.solution.Ci_cell = [initSetPrecious.solution.Ci_Cu2_cell initSetPrecious.solution.Ci_Sn2_cell initSetPrecious.solution.Ci_Fe2_cell ...
+    initSetPrecious.solution.Ci_Fe3_cell initSetPrecious.solution.Ci_Ag_cell initSetPrecious.solution.Ci_Au3_cell initSetPrecious.solution.Ci_Pd2_cell ...
+    initSetPrecious.solution.Ci_H_cell initSetPrecious.solution.Ci_S2O3_cell initSetPrecious.solution.Ci_AuCl4_cell];
 
 %leching vessel concentrations (extraction)
 initSetPrecious.solution.Ci_Cu2_lch = 0;
 initSetPrecious.solution.Ci_Sn2_lch = 0;
-initSetPrecious.solution.Ci_Al3_lch = 0;
-initSetPrecious.solution.Ci_Pb2_lch = 0;
 initSetPrecious.solution.Ci_Fe2_lch = 0.5;
 initSetPrecious.solution.Ci_Fe3_lch = 0.1;
 initSetPrecious.solution.Ci_Ag_lch = 0;
-initSetPrecious.solution.Ci_Au_lch = 0;
+initSetPrecious.solution.Ci_Au3_lch = 0;
 initSetPrecious.solution.Ci_Pd2_lch = 0;
 initSetPrecious.solution.Ci_H_lch = 0.5;
-initSetPrecious.solution.Ci_Cl_lch = 0;
 initSetPrecious.solution.Ci_S2O3_lch = 0.5;
-initSetPrecious.solution.Ci_lch = [initSetPrecious.solution.Ci_Cu2_lch initSetPrecious.solution.Ci_Sn2_lch initSetPrecious.solution.Ci_Al3_lch initSetPrecious.solution.Ci_Pb2_lch initSetPrecious.solution.Ci_Fe2_lch ... 
-    initSetPrecious.solution.Ci_Fe3_lch initSetPrecious.solution.Ci_Ag_lch initSetPrecious.solution.Ci_Au_lch initSetPrecious.solution.Ci_Pd2_lch initSetPrecious.solution.Ci_H_lch initSetPrecious.solution.Ci_Cl_lch initSetPrecious.solution.Ci_S2O3_lch];
+initSetPrecious.solution.Ci_AuCl4_lch = 0;
+initSetPrecious.solution.Ci_lch = [initSetPrecious.solution.Ci_Cu2_lch initSetPrecious.solution.Ci_Sn2_lch initSetPrecious.solution.Ci_Fe2_lch ... 
+    initSetPrecious.solution.Ci_Fe3_lch initSetPrecious.solution.Ci_Ag_lch initSetPrecious.solution.Ci_Au3_lch initSetPrecious.solution.Ci_Pd2_lch ...
+    initSetPrecious.solution.Ci_H_lch initSetPrecious.solution.Ci_S2O3_lch initSetPrecious.solution.Ci_AuCl4_lch];
 
 %% Precious metal system parameters
 paramSetPrecious.temp = 298; %K
 paramSetPrecious.pres = 1; % atm
-paramSetPrecious.vol_cell = 250; %L
-paramSetPrecious.Q = 5;%; % L/s (flowrate)
+paramSetPrecious.vol_cell = 0.04; %L
+paramSetPrecious.Q = 0.001/60;%; % L/s (flowrate)
 %Electrode areas
-paramSetPrecious.S_cat = 500; %cm^2
-paramSetPrecious.S_an = 500; %cm^2
+paramSetPrecious.S_cat = 250; %cm^2
+paramSetPrecious.S_an = 36; %cm^2
 %Cross sectional area of cell
-paramSetPrecious.A_cell = 500; %cm^2
+paramSetPrecious.A_cell = 36; %cm^2
 %Length b/w electrodes
-paramSetPrecious.l = 100; %cm
+paramSetPrecious.l = 3.5; %cm
+%Extraction vessel parameters
+paramSetPrecious.vol_lch = 0.09; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
+
+paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
 paramSetPrecious.V_app = 7; %V
-%Extraction vessel parameters
-paramSetPrecious.vol_lch = 200; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
-paramSetPrecious.tfinal = 6*60*60; %s
+%Applied Current to Cell (Galvanostat)
+paramSetPrecious.I_app = 0.05; %A
+paramSetPrecious.tfinal = 10*3600; %s
+
+%Max current density for all rxns
+paramSetPrecious.iL_default = -1; %A/cm^2
+%fsolve options
+paramSetPrecious.foptions = optimoptions(@fsolve, 'Display','off', ...
+    'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
+
 %%
-resultsPrecious = BaseMetalCell(initSetPrecious,paramSetPrecious)
+disp("Modelling Precious Metal Extraction and Recovery");
+resultsPrecious = metalER(initSetPrecious,paramSetPrecious);
 %}

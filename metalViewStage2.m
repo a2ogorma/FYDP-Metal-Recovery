@@ -1,9 +1,10 @@
+%Plots for stage two extraction/recovery of precious
 %Select metal here
-metal = 1;
+metal = 6;
 metal_names = {'Copper';'Tin';'Iron';'Silver';'Gold';'Palladium'};
 ion_names = {'Cu2+', 'Sn2+', 'Fe2+', 'Fe3+', 'Ag+', 'Au3+', 'Pd2+'};
 propertiesMetals
-results = resultsBase;
+results = resultsPrecious;
 t = results.t;
 Cm = results.Cm;
 Erev_cat = results.electrowinning.Erev_cat;
@@ -26,7 +27,7 @@ set(f, 'DefaultLegendLocation', 'southwest');
 sgtitle(metal_names(metal))
 set(gcf, 'Position',  [40, 40, 1500, 700])
 
-i = 150; %initial index
+i = 20; %initial index
 tf = size(t);
 if metal == 3 %Iron -- Two ions in this case
     Fe2 = 3;
@@ -82,7 +83,7 @@ if metal == 3 %Iron -- Two ions in this case
     title('Potentials');
     legend('Fe3+/Fe2+ Erev in Leach unit', 'Fe2+/Fe(s) Erev in Leach unit', 'Ecorr');
     
-elseif metal > 3 %Precious Metals
+elseif metal > 3 %Precious metals
     cation = metal+1;
     rxn = 2*cation-5;
     %Concentration Plot
@@ -92,13 +93,6 @@ elseif metal > 3 %Precious Metals
     legend('Catholyte','Anolyte', 'Leaching');
     xlabel('Time (s)');
     ylabel('Concentration (M)');
-    %Currents
-    subplot(2,3,2);
-    plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn));
-    title('Currents')
-    legend('Electrowinning','Leaching')
-    xlabel('Time (s)')
-    ylabel('Current (A)')
     %Mass
     subplot(2,3,3);
     plot(t(i:tf),pct_lch(i:tf,metal),t(i:tf),pct_rec(i:tf,metal));
@@ -106,19 +100,72 @@ elseif metal > 3 %Precious Metals
     legend('Metal leached','Metal recovered');
     xlabel('Time (s)');
     ylabel('% mass');
-    %Nernst
-    subplot(2,3,4);
-    plot(t(i:tf),Erev_cat(i:tf,rxn),t(i:tf),E_cat(i:tf));
-    title('Potentials');
-    legend('Rev. Potential in Catholyte', 'Cathode Potential');
-    subplot(2,3,5);
-    plot(t(i:tf),Erev_an(i:tf,rxn),t(i:tf),E_an(i:tf));
-    title('Potentials');
-    legend('Rev. Potential in Anolyte', 'Anode Potential');
-    subplot(2,3,6);
-    plot(t(i:tf),Erev_lch(i:tf,rxn),t(i:tf),E_corr(i:tf));
-    title('Potentials');
-    legend('Rev. Potential in Leaching Unit', 'Corrosion Potential');
+    if metal == 4 %Ag
+        rxnCl = rxn+1;
+        %Currents
+        subplot(2,3,2);
+        plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn)+I_corr(i:tf,rxnCl));
+        title('Currents')
+        legend('Electrowinning','Leaching')
+        xlabel('Time (s)')
+        ylabel('Current (A)')
+        %Nernst
+        subplot(2,3,4);
+        plot(t(i:tf),Erev_cat(i:tf,rxn),t(i:tf),Erev_cat(i:tf,rxnCl),t(i:tf),E_cat(i:tf));
+        title('Catholyte Potentials');
+        legend('Erev, Ag+/Ag(s)', 'Erev, AgCl/Ag(s)/Cl-', 'Ecat')
+        subplot(2,3,5);
+        plot(t(i:tf),Erev_an(i:tf,rxn),t(i:tf),Erev_an(i:tf,rxnCl),t(i:tf),E_an(i:tf));
+        title('Anolyte Potentials');
+        legend('Erev, Ag+/Ag(s)', 'Erev, AgCl/Ag(s)/Cl-', 'Ean');
+        subplot(2,3,6);
+        plot(t(i:tf),Erev_lch(i:tf,rxn),t(i:tf),Erev_lch(i:tf,rxnCl),t(i:tf),E_corr(i:tf));
+        title('Leaching Unit Potentials');
+        legend('Erev, Ag+/Ag(s)', 'Erev, AgCl/Ag(s)/Cl-', 'Ecorr')
+    elseif metal == 5 %Au
+        rxnCl = rxn+1;
+        %Currents
+        subplot(2,3,2);
+        plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn)+I_corr(i:tf,rxnCl));
+        title('Currents')
+        legend('Electrowinning','Leaching')
+        xlabel('Time (s)')
+        ylabel('Current (A)')
+        %Nernst
+        subplot(2,3,4);
+        plot(t(i:tf),Erev_cat(i:tf,rxn),t(i:tf),Erev_cat(i:tf,rxnCl),t(i:tf),E_cat(i:tf));
+        title('Catholyte Potentials');
+        legend('Erev, Au3+/Au(s)', 'Erev, AuCl4-/Au(s)/Cl-', 'Ecat')
+        subplot(2,3,5);
+        plot(t(i:tf),Erev_an(i:tf,rxn),t(i:tf),Erev_an(i:tf,rxnCl),t(i:tf),E_an(i:tf));
+        title('Anolyte Potentials');
+        legend('Erev, Au3+/Au(s)', 'Erev, AuCl4-/Au(s)/Cl-', 'Ean');
+        subplot(2,3,6);
+        plot(t(i:tf),Erev_lch(i:tf,rxn),t(i:tf),Erev_lch(i:tf,rxnCl),t(i:tf),E_corr(i:tf));
+        title('Leaching Unit Potentials');
+        legend('Erev, Au3+/Au(s)', 'Erev, AuCl4-/Au(s)/Cl-', 'Ecorr')
+    else %Pd
+        %Currents
+        subplot(2,3,2);
+        plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn));
+        title('Currents')
+        legend('Electrowinning','Leaching')
+        xlabel('Time (s)')
+        ylabel('Current (A)')
+        %Nernst
+        subplot(2,3,4);
+        plot(t(i:tf),Erev_cat(i:tf,rxn),t(i:tf),E_cat(i:tf));
+        title('Catholyte Potentials');
+        legend('Erev, Pd2+/Pd(s)', 'Ecat')
+        subplot(2,3,5);
+        plot(t(i:tf),Erev_an(i:tf,rxn),t(i:tf),E_an(i:tf));
+        title('Anolyte Potentials');
+        legend('Erev, Pd2+/Pd(s)', 'Ean');
+        subplot(2,3,6);
+        plot(t(i:tf),Erev_lch(i:tf,rxn),t(i:tf),E_corr(i:tf));
+        title('Leaching Unit Potentials');
+        legend('Erev, Pd2+/Pd(s)', 'Ecorr')
+    end
 else
     cation = metal;
     rxn = metal;
@@ -157,5 +204,4 @@ else
     plot(t(i:tf),Erev_lch(i:tf,rxn),t(i:tf),E_corr(i:tf));
     title('Potentials');
     legend('Rev. Potential in Leaching Unit', 'Corrosion Potential');
-    
 end

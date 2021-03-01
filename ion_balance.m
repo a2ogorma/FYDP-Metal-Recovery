@@ -137,23 +137,20 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     %solve cell currents and electrode potentials
     onCathode = [1 1 1 1 1 0 1 1 1 1 1];
     onAnode = [0 0 1 0 0 0 0 0 0 0 1];
+    global x0 %initial guesses [I_an, E_an, E_cat] for mode 1 or [V, E_an, E_cat] for mode 2
     if mode == 1
         solver = @(x) cell_solver_p(x(1), x(2), x(3), V_app, r_sol, r_hardware, ...
-            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLa_cat, onCathode, ...
+            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLc_an, onCathode, ...
             onAnode, S_an, S_cat_p, temp);
-        %initial guesses [I_an, E_an, E_cat]
-        x0 = [0.2, 0.1, -0.1];
         x = fsolve(solver, x0, foptions);
-        I = x(1);
     elseif mode == 2
         solver = @(x) cell_solver_g(x(1), x(2), x(3), I_app, r_sol, r_hardware, ...
-            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLa_cat, onCathode, ...
+            Erev_cat, Erev_an, iLa_cat, iLc_cat, iLa_an, iLc_an, onCathode, ...
             onAnode, S_an, S_cat_p, temp);
-        %initial guesses [V, E_an, E_cat]
-        x0 = [2, 0.5, -0.5];
+        %initial guesses 
         x = fsolve(solver, x0, foptions);
-        V = x(1);
     end
+    x0 = x; %set initial guess for next step to computed solution
     E_an = x(2);
     E_cat = x(3);
     eta_cat = E_cat - Erev_cat;
@@ -198,11 +195,16 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     %solve extraction lch corrosion rate
     on_PCB_cathode = [1 1 1 1 1 0 1 1 1 1 1];
     on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
-    j0 = (Erev_lch(1)+Erev_lch(5))/2; %Initial guess for E_corr, V
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, iLa_corr, iLc_corr, S_PCB, ... 
         on_PCB_cathode, on_PCB_anode, temp);
+    j0 = (randperm(20)-1)/19*(max(Erev_lch)-min(Erev_lch))+min(Erev_lch); %Initial guess for E_corr, V b/w max and min Nernst potentials
+    for k = 1:1:numel(j0)
+        [E_corr,~,exitflag_cor,~] = fsolve(cor_solver, j0(k), foptions);
+        if exitflag_cor >= 1
+            break
+        end
+    end
     %E_corr = fminbnd(cor_solver,min(Erev_lch),max(Erev_lch));
-    E_corr = fsolve(cor_solver, j0, foptions);
     i_BV_corr = i_BV(E_corr-Erev_lch, i0, iLa_corr, iLc_corr, alphas, z, temp);
     i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
     i_corr_cat = on_PCB_cathode.*(-subplus(-i_BV_corr));

@@ -36,12 +36,12 @@ end
 
 % exchange current densities, A/cm^2
 if solution == 1 %Cl-, base metal system
-    active = [1 0 1 1 0 0 0 0 0 1 1];
+    active = [1 1 1 1 1 1 0 0 0 1 1];
     i0_5 = 4e-9;
     i0_7 = 2E-8;
     i0_9 = 7.3E-9;
 else %S2O3, precious metal system
-    active = [1 1 1 1 1 1 1 0 1 1 1];
+    active = [0 0 1 1 1 0 1 0 1 1 1];
     i0_5 = 4e-9; %Aidan fill these out for the thiosulfate rxns pls
     i0_7 = 2E-8; %value of dissolution including Na2S in dissolution 
         %reaction from https://link-springer-com.proxy.lib.uwaterloo.ca/article/10.1134/S1023193506040021, converting A/cm2 to A/m2 
