@@ -66,7 +66,7 @@ function results = metalER(initSet,paramSet)
     n_particles = sum(V_PCB_i)*3/(4*pi*r_particles_i^3);
     
     %global initial guess variable for electrowinning solver
-    global x0
+    global x0 E_corr0
     if mode == 1
         %I, E_an, E_cat
         x0 = [0.5, 0.1, -0.1];
@@ -74,6 +74,7 @@ function results = metalER(initSet,paramSet)
         %V, E_an, E_cat
         x0 = [2, 0.5, -0.5];
     end
+    E_corr0 = 0.2; %initial guess for corrosion potential
     
     %initializing solution concentration and solid mass vector
     Cm_i = [initSet.solution.Ci_cell initSet.solution.Ci_cell initSet.solution.Ci_lch m_PCB_i m_deposited];
@@ -93,7 +94,7 @@ function results = metalER(initSet,paramSet)
     tspan = [0 tfinal];
     %options = odeset('NonNegative', 1:41);
     %options = odeset('Events', discont_event);
-    options = odeset('NonNegative',1:41, 'Events', discont_event);
+    options = odeset('NonNegative',1:43, 'Events', discont_event, 'RelTol', 1e-7, 'AbsTol', 1e-11);
     if mode == 1
         balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, ...
             vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, l, A_cell, ...
@@ -107,7 +108,15 @@ function results = metalER(initSet,paramSet)
     %[t, Cm] = ode45(balance_solver, tspan, Cm_i,options);
     
     disp("Post-processing")
-    
+    %Reset initial guesses
+    if mode == 1
+        %I, E_an, E_cat
+        x0 = [0.5, 0.1, -0.1];
+    else
+        %V, E_an, E_cat
+        x0 = [2, 0.5, -0.5];
+    end
+    E_corr0 = 0.2;
     %% Back calculating currents and potentials using solution for Cm matrix:
     for j = 1:1:length(t)
         CmStep = Cm(j,:);
@@ -274,6 +283,8 @@ function results = metalER(initSet,paramSet)
         on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
         cor_solver = @(E_corr)cor(E_corr, Erev_lch(j,:), iLa_corr(j,:), iLc_corr(j,:), S_PCB(j,:), ... 
             on_PCB_cathode, on_PCB_anode, temp);
+        [E_corr(j),~,exitflag_cor(j),~] = fsolve(cor_solver, E_corr0, foptions);
+        %{
         j0 = (randperm(20)-1)/19*(max(Erev_lch(j,:))-min(Erev_lch(j,:)))+min(Erev_lch(j,:)); %Initial guess for E_corr, V b/w max and min Nernst potentials
         for k = 1:1:numel(j0)
             [E_corr(j),~,exitflag_cor(j),~] = fsolve(cor_solver, j0(k), foptions);
@@ -281,22 +292,19 @@ function results = metalER(initSet,paramSet)
                 break
             end
         end
+        %}
+        E_corr0 = E_corr(j); %Set new initial guess to old one
         i_BV_corr = i_BV(E_corr(j)-Erev_lch(j,:), i0, iLa_corr(j,:), iLc_corr(j,:), alphas, z, temp);
         i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
         i_corr_cat = on_PCB_cathode.*(-subplus(-i_BV_corr));
         i_corr(j,:) = i_corr_an + i_corr_cat;
         %arrange surface areas in proper order
-        S_corr(j,:) = [S_PCB(2:3) sum(S_PCB(2:7)) S_PCB(4:5) S_PCB(5:6) S_PCB(6:7) sum(S_PCB(2:7)) sum(S_PCB(2:7))];
+        S_corr(j,:) = [S_PCB(j,2:3) sum(S_PCB(j,2:7)) S_PCB(j,4:5) S_PCB(j,5:6) S_PCB(j,6:7) sum(S_PCB(j,2:7)) sum(S_PCB(j,2:7))];
         I_corr(j,:) = S_corr(j,:).*i_corr(j,:);
         I_corr_err(j) = sum(I_corr(j,:));
         
         dCm_dt(j,:) = balance_solver(t(j), CmStep');
     end
-    e_corr = [E_corr(j)-0.5:0.01:E_corr(j)+0.5];
-    for i = 1:1:numel(e_corr)
-            c(i) = cor_solver(e_corr(i));
-    end
-    plot(e_corr, c,'b-', E_corr(j), cor_solver(E_corr(j)), 'r.')
     %% Setting up results output struct
     results.init.paramSet = paramSet;
     results.init.initSet = initSet;
@@ -333,7 +341,7 @@ function results = metalER(initSet,paramSet)
     results.electrowinning.I_cell = I_cell;
     results.electrowinning.I_cell_err = I_cell_err;
     if mode == 1
-        results.electrwoinning.I_calc = I_calc;
+        results.electrowinning.I_calc = I_calc;
     else
         results.electrowinning.V_calc = V_calc;
     end

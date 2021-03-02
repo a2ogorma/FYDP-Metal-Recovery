@@ -18,16 +18,16 @@ paramSetBase.l = 3.5; %cm
 %L (Initial) volume of bed holding the particles assuming the bed is completly full.
 paramSetBase.vol_lch = 0.09; 
 
-paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
+paramSetBase.mode = 2; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
-paramSetBase.V_app = 3.5; %V
+paramSetBase.V_app = 3; %V
 %Applied Current to Cell (Galvanostat)
-paramSetBase.I_app = 0.05; %A
-paramSetBase.tfinal = 10*3600; %s
+paramSetBase.I_app = 0.5; %A
+paramSetBase.tfinal = 35*3600; %s
 
 
 %Max current density for all rxns
-paramSetBase.iL_default = -1; %A/cm^2
+paramSetBase.iL_default = 1; %A/cm^2
 %fsolve options
 paramSetBase.foptions = optimoptions(@fsolve, 'Display','off', ...
     'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
@@ -56,10 +56,10 @@ initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious me
 %initial concentrations in mol/L
 %Cell Concentrations (recovery)
 initSetBase.solution.Ci_Cu2_cell = 0.01;
-initSetBase.solution.Ci_Sn2_cell = 0.01;
+initSetBase.solution.Ci_Sn2_cell = 0.0;
 initSetBase.solution.Ci_Fe2_cell = 0.01;
-initSetBase.solution.Ci_Fe3_cell = 0.2;
-initSetBase.solution.Ci_Ag_cell = 0.000001;
+initSetBase.solution.Ci_Fe3_cell = 0.5;
+initSetBase.solution.Ci_Ag_cell = 0.00;
 initSetBase.solution.Ci_Au3_cell = 0.0;
 initSetBase.solution.Ci_Pd2_cell = 0.0;
 initSetBase.solution.Ci_H_cell = 0.5;
@@ -152,7 +152,7 @@ paramSetPrecious.vol_lch = 0.09; %L (Initial) volume of bed holding the particle
 
 paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
-paramSetPrecious.V_app = 7; %V
+paramSetPrecious.V_app = 3; %V
 %Applied Current to Cell (Galvanostat)
 paramSetPrecious.I_app = 0.05; %A
 paramSetPrecious.tfinal = 10*3600; %s
@@ -164,6 +164,6 @@ paramSetPrecious.foptions = optimoptions(@fsolve, 'Display','off', ...
     'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
 
 %%
-disp("Modelling Precious Metal Extraction and Recovery");
-resultsPrecious = metalER(initSetPrecious,paramSetPrecious);
+%disp("Modelling Precious Metal Extraction and Recovery");
+%resultsPrecious = metalER(initSetPrecious,paramSetPrecious);
 %}

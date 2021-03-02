@@ -1,10 +1,12 @@
 %Plots for stage one extraction/recovery of base metals
 %Select metal here
-metal = 2;
+metal = 3;
 metal_names = {'Copper';'Tin';'Iron';'Silver';'Gold';'Palladium'};
 ion_names = {'Cu2+', 'Sn2+', 'Fe2+', 'Fe3+', 'Ag+', 'Au3+', 'Pd2+'};
 propertiesMetals
 results = resultsBase;
+init = initSetBase;
+param = paramSetBase;
 t = results.t;
 Cm = results.Cm;
 Erev_cat = results.electrowinning.Erev_cat;
@@ -27,7 +29,7 @@ set(f, 'DefaultLegendLocation', 'southwest');
 sgtitle(metal_names(metal))
 set(gcf, 'Position',  [40, 40, 1500, 700])
 
-i = 20; %initial index
+i = 5; %initial index
 tf = size(t);
 if metal == 3 %Iron -- Two ions in this case
     Fe2 = 3;

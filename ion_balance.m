@@ -1,5 +1,5 @@
 function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
-    S_cat, mode, VI_app, n_particles, l, A_cell, solution, iL_default, foptions)
+    S_cat, mode, VI_app, n_particles, l, A_cell, solution, iL_default, foptions))
     %t = time span (s)
     %Cm = ionic concentration and solid mass vector (M, kg)
     %pres = system pressure (atm)
@@ -8,10 +8,14 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     %Q = circulation flowrate (L/s)
     %S_an = cell anodic surface area (cm^2);
     %S_cat = cell cathodic surface area (cm^2);
-    %V_app = applied voltage to cell (V);
+    %VI_app = applied voltage (V) or current (A) to cell;
     %n_particles = number of PCB particles as calculated by radius/volume;
     %l = cell distance between electrodes;
+    %solution = 1 for base metal HCl, 2 for S2O3- precious metal
+    %iL_default = default limiting current density
+    %foptions = fsolve options to be used
     %A_cell = cell cross sectional area;
+    
     %{
     Ionic species order:
     Base: Cu2+, Sn2+, Fe2+, Fe3+, Ag+, Au3+, Pd2+, H+, Cl-, (AuCl4)-,
@@ -33,12 +37,14 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     4H+ + O2(g) + 4e- <--> 2H2O(l) (11)
     %}
     
-    global F z i0 km alphas lamda rho mw aH2 aO2
+    global F z i0 km alphas lamda rho mw
+    
     if mode == 1 %potentiostat
         V_app = VI_app;
     elseif mode == 2 %galvanostat
         I_app = VI_app;
     end
+    
     %calculate total mass and wt fractions based on partial masses at
     %timestep
     m_PCB = (Cm(31:37).');
@@ -197,6 +203,9 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, iLa_corr, iLc_corr, S_PCB, ... 
         on_PCB_cathode, on_PCB_anode, temp);
+    global E_corr0
+    [E_corr,~,exitflag_cor,~] = fsolve(cor_solver, E_corr0, foptions);
+    %{
     j0 = (randperm(20)-1)/19*(max(Erev_lch)-min(Erev_lch))+min(Erev_lch); %Initial guess for E_corr, V b/w max and min Nernst potentials
     for k = 1:1:numel(j0)
         [E_corr,~,exitflag_cor,~] = fsolve(cor_solver, j0(k), foptions);
@@ -204,6 +213,8 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
             break
         end
     end
+    %}
+    E_corr0 = E_corr; %Set new initial guess to old one
     %E_corr = fminbnd(cor_solver,min(Erev_lch),max(Erev_lch));
     i_BV_corr = i_BV(E_corr-Erev_lch, i0, iLa_corr, iLc_corr, alphas, z, temp);
     i_corr_an = on_PCB_anode.*subplus(i_BV_corr);
@@ -217,55 +228,55 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     %Calculate concentration/mass balances
     dt = zeros(size(Cm));
     %Electrowinning cathodic side concentration balances
-    dt(1) = ((Cm(21)-Cm(1))*Q + I_cat(1)/F/z(1))/vol_cat; %Cu2+
-    dt(2) = ((Cm(22)-Cm(2))*Q + I_cat(2)/F/z(2))/vol_cat; %Sn2+
-    dt(3) = ((Cm(23)-Cm(3))*Q + (I_cat(4)/F/z(4))-(I_cat(3)/F/z(3)))/vol_cat; %Fe2+
-    dt(4) = ((Cm(24)-Cm(4))*Q + I_cat(3)/F/z(3))/vol_cat; %Fe3+
-    dt(5) = ((Cm(25)-Cm(5))*Q + I_cat(5)/F/z(5))/vol_cat; %Ag+ or (AgS2O3)3-
-    dt(6) = ((Cm(26)-Cm(6))*Q + I_cat(7)/F/z(7))/vol_cat; %Au3+ or (AuS2O3)3-
-    dt(7) = ((Cm(27)-Cm(7))*Q + I_cat(9)/F/z(9))/vol_cat; %Pd2+ or (PdS2O3)6-
-    dt(8) = ((Cm(28)-Cm(8))*Q + I_cat(10)/F/z(10)+I_cat(11)/F/z(11))/vol_cat; %H+
+    dt(1) = ((Cm(21)-Cm(1))*Q/2 + I_cat(1)/F/z(1))/vol_cat; %Cu2+
+    dt(2) = ((Cm(22)-Cm(2))*Q/2 + I_cat(2)/F/z(2))/vol_cat; %Sn2+
+    dt(3) = ((Cm(23)-Cm(3))*Q/2 + (I_cat(4)/F/z(4))-(I_cat(3)/F/z(3)))/vol_cat; %Fe2+
+    dt(4) = ((Cm(24)-Cm(4))*Q/2 + I_cat(3)/F/z(3))/vol_cat; %Fe3+
+    dt(5) = ((Cm(25)-Cm(5))*Q/2 + I_cat(5)/F/z(5))/vol_cat; %Ag+ or (AgS2O3)3-
+    dt(6) = ((Cm(26)-Cm(6))*Q/2 + I_cat(7)/F/z(7))/vol_cat; %Au3+ or (AuS2O3)3-
+    dt(7) = ((Cm(27)-Cm(7))*Q/2 + I_cat(9)/F/z(9))/vol_cat; %Pd2+ or (PdS2O3)6-
+    dt(8) = ((Cm(28)-Cm(8))*Q/2 + I_cat(10)/F/z(10)+I_cat(11)/F/z(11))/vol_cat; %H+
     if solution == 1
-        dt(9) = ((Cm(29)-Cm(9))*Q - I_cat(6)/F/z(6)-I_cat(8)*4/F/z(8))/vol_cat; %Cl-
+        dt(9) = ((Cm(29)-Cm(9))*Q/2 - I_cat(6)/F/z(6)-I_cat(8)*4/F/z(8))/vol_cat; %Cl-
     else
-        dt(9) = ((Cm(29)-Cm(9))*Q - I_cat(5)*2/F/z(5) - I_cat(7)*2/F/z(7)...
+        dt(9) = ((Cm(29)-Cm(9))*Q/2 - I_cat(5)*2/F/z(5) - I_cat(7)*2/F/z(7)...
             - I_cat(9)*4/F/z(9))/vol_cat; %(S203)2-
     end
-    dt(10) = ((Cm(30)-Cm(10))*Q + I_cat(10)/F/z(10) + I_cat(11)/F/z(11))/vol_cat; %AuCl4-
+    dt(10) = ((Cm(30)-Cm(10))*Q/2 + I_cat(10)/F/z(10) + I_cat(11)/F/z(11))/vol_cat; %AuCl4-
    
     %Electrowinning anodic side concentration balances
-    dt(11) = ((Cm(1)-Cm(11))*Q + I_an(1)/F/z(1))/vol_an; %Cu2+
-    dt(12) = ((Cm(2)-Cm(12))*Q + I_an(2)/F/z(2))/vol_an; %Sn2+
-    dt(13) = ((Cm(3)-Cm(13))*Q + I_an(4)/F/z(4)-(I_an(3)/F/z(3)))/vol_an; %Fe2+
-    dt(14) = ((Cm(4)-Cm(14))*Q + I_an(3)/F/z(3))/vol_an; %Fe3+
-    dt(15) = ((Cm(5)-Cm(15))*Q + I_an(5)/F/z(5))/vol_an; %Ag+ or (AgS2O3)3-
-    dt(16) = ((Cm(6)-Cm(16))*Q + I_an(7)/F/z(7))/vol_an; %Au3+ or (AuS2O3)3-
-    dt(17) = ((Cm(7)-Cm(17))*Q + I_an(9)/F/z(9))/vol_an; %Pd2+ or (PdS2O3)6-
-    dt(18) = ((Cm(8)-Cm(18))*Q + I_an(10)/F/z(10)+I_an(11)/F/z(11))/vol_an; %H+
+    dt(11) = ((Cm(21)-Cm(11))*Q/2 + I_an(1)/F/z(1))/vol_an; %Cu2+
+    dt(12) = ((Cm(22)-Cm(12))*Q/2 + I_an(2)/F/z(2))/vol_an; %Sn2+
+    dt(13) = ((Cm(23)-Cm(13))*Q/2 + I_an(4)/F/z(4)-(I_an(3)/F/z(3)))/vol_an; %Fe2+
+    dt(14) = ((Cm(24)-Cm(14))*Q/2 + I_an(3)/F/z(3))/vol_an; %Fe3+
+    dt(15) = ((Cm(25)-Cm(15))*Q/2 + I_an(5)/F/z(5))/vol_an; %Ag+ or (AgS2O3)3-
+    dt(16) = ((Cm(26)-Cm(16))*Q/2 + I_an(7)/F/z(7))/vol_an; %Au3+ or (AuS2O3)3-
+    dt(17) = ((Cm(27)-Cm(17))*Q/2 + I_an(9)/F/z(9))/vol_an; %Pd2+ or (PdS2O3)6-
+    dt(18) = ((Cm(28)-Cm(18))*Q/2 + I_an(10)/F/z(10)+I_an(11)/F/z(11))/vol_an; %H+
     if solution == 1
-        dt(19) = ((Cm(9)-Cm(19))*Q - I_an(6)/F/z(6)-I_an(8)*4/F/z(8))/vol_an; %Cl-
+        dt(19) = ((Cm(29)-Cm(19))*Q/2 - I_an(6)/F/z(6)-I_an(8)*4/F/z(8))/vol_an; %Cl-
     else
-        dt(19) = ((Cm(9)-Cm(19))*Q - I_an(5)*2/F/z(5) - I_an(7)*2/F/z(7)...
+        dt(19) = ((Cm(29)-Cm(19))*Q/2 - I_an(5)*2/F/z(5) - I_an(7)*2/F/z(7)...
             - I_an(9)*4/F/z(9))/vol_an; %(S203)2-
     end
-    dt(20) = ((Cm(10)-Cm(20))*Q + I_an(10)/F/z(10) + I_an(11)/F/z(11))/vol_an; %AuCl4-
+    dt(20) = ((Cm(30)-Cm(20))*Q/2 + I_an(10)/F/z(10) + I_an(11)/F/z(11))/vol_an; %AuCl4-
     
     %Leaching vessel concentration balances
-    dt(21) = ((Cm(11)-Cm(21))*Q + I_corr(1)/F/z(1))/vol_lch; %Cu2+
-    dt(22) = ((Cm(12)-Cm(22))*Q + I_corr(2)/F/z(2))/vol_lch; %Sn2+
-    dt(23) = ((Cm(13)-Cm(23))*Q + I_corr(4)/F/z(4) - I_corr(3)/F/z(3))/vol_lch; %Fe2+
-    dt(24) = ((Cm(14)-Cm(24))*Q + I_corr(3)/F/z(3))/vol_lch; %Fe3+
-    dt(25) = ((Cm(15)-Cm(25))*Q + I_corr(5)/F/z(5))/vol_lch; %Ag+ or (AgS2O3)3-
-    dt(26) = ((Cm(16)-Cm(26))*Q + I_corr(7)/F/z(7))/vol_lch; %Au3+ or (AuS2O3)3-
-    dt(27) = ((Cm(17)-Cm(27))*Q + I_corr(9)/F/z(9))/vol_lch; %Pd2+ or (PdS2O3)6-
-    dt(28) = ((Cm(18)-Cm(28))*Q + I_corr(10)/F/z(10) + I_corr(11)/F/z(11))/vol_lch; %H+
+    dt(21) = (((Cm(1)+Cm(11))/2-Cm(21))*Q + I_corr(1)/F/z(1))/vol_lch; %Cu2+
+    dt(22) = (((Cm(2)+Cm(12))/2-Cm(22))*Q + I_corr(2)/F/z(2))/vol_lch; %Sn2+
+    dt(23) = (((Cm(3)+Cm(13))/2-Cm(23))*Q + I_corr(4)/F/z(4) - I_corr(3)/F/z(3))/vol_lch; %Fe2+
+    dt(24) = (((Cm(4)+Cm(14))/2-Cm(24))*Q + I_corr(3)/F/z(3))/vol_lch; %Fe3+
+    dt(25) = (((Cm(5)+Cm(15))/2-Cm(25))*Q + I_corr(5)/F/z(5))/vol_lch; %Ag+ or (AgS2O3)3-
+    dt(26) = (((Cm(6)+Cm(16))/2-Cm(26))*Q + I_corr(7)/F/z(7))/vol_lch; %Au3+ or (AuS2O3)3-
+    dt(27) = (((Cm(7)+Cm(17))/2-Cm(27))*Q + I_corr(9)/F/z(9))/vol_lch; %Pd2+ or (PdS2O3)6-
+    dt(28) = (((Cm(8)+Cm(18))/2-Cm(28))*Q + I_corr(10)/F/z(10) + I_corr(11)/F/z(11))/vol_lch; %H+
     if solution == 1
-        dt(29) = ((Cm(19)-Cm(29))*Q - I_corr(6)/F/z(6)-I_corr(8)*4/F/z(8))/vol_an; %Cl-
+        dt(29) = (((Cm(9)+Cm(19))/2-Cm(29))*Q - I_corr(6)/F/z(6)-I_corr(8)*4/F/z(8))/vol_an; %Cl-
     else
-        dt(29) = ((Cm(19)-Cm(29))*Q - I_corr(5)*2/F/z(5) - I_corr(7)*2/F/z(7)...
+        dt(29) = (((Cm(9)+Cm(19))/2-Cm(29))*Q - I_corr(5)*2/F/z(5) - I_corr(7)*2/F/z(7)...
             - I_corr(9)*4/F/z(9))/vol_an; %(S203)2-
     end
-    dt(30) = ((Cm(20)-Cm(30))*Q + I_corr(10)/F/z(10) + I_corr(11)/F/z(11))/vol_an; %AuCl4-
+    dt(30) = (((Cm(10)+Cm(20))/2-Cm(30))*Q + I_corr(10)/F/z(10) + I_corr(11)/F/z(11))/vol_an; %AuCl4-
     
     %PCB metal mass balances in kg units
     dt(31) = 0; %Inert material 

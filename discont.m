@@ -2,16 +2,18 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     vol_lch, Q, S_an, S_cat, mode, VI_app, n_particles, l, A_cell, solution, iL_default, foptions)
     direction = [];
     isterminal = zeros(1,13);
-    isterminal(12) = 1;
+    isterminal(12) = 0;
     isterminal(13) = 0;
     flag = ones(1,13);
     disp(['Checking for fsolve failure at t = ' num2str(t)]);
-    global F z i0 km alphas lamda rho mw aH2 aO2
+    global F z km lamda rho
+    
     if mode == 1 %potentiostat
         V_app = VI_app;
     elseif mode == 2 %galvanostat
         I_app = VI_app;
     end
+    
     %calculate total mass and wt fractions based on partial masses at
     %timestep
     m_PCB = (Cm(31:37).');
@@ -156,13 +158,18 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     on_PCB_anode = [1 1 1 1 1 1 1 1 1 0 1];
     cor_solver = @(E_corr)cor(E_corr, Erev_lch, iLa_corr, iLc_corr, S_PCB, ... 
         on_PCB_cathode, on_PCB_anode, temp);
+    global E_corr0
+    [E_corr,~,exitflag_cor,o_cor] = fsolve(cor_solver, E_corr0, foptions);
+    %{
     j0 = (randperm(20)-1)/19*(max(Erev_lch)-min(Erev_lch))+min(Erev_lch); %Initial guess for E_corr, V b/w max and min Nernst potentials
     for k = 1:1:numel(j0)
-        [E_corr,~,exitflag_cor,~] = fsolve(cor_solver, j0(k), foptions);
+        [E_corr,~,exitflag_cor,o_cor] = fsolve(cor_solver, j0(k), foptions);
         if exitflag_cor >= 1
             break
         end
     end
+    %}
+    E_corr0 = E_corr; %Set new initial guess to old one
     flag(1:11) = E_corr-Erev_lch;
     if exitflag_cell <= 0
         flag(12) = 0;

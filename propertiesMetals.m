@@ -2,7 +2,7 @@
 global R F e;
 R = 8.314; %J/(mol K)
 F = 96485.3329; %C/mol
-e = 1E-25; %eps;
+e = 1E-16; %eps;
 %{
 Ionic species order:
 Base: Cu2+, Sn2+, Fe2+, Fe3+, Ag+, Au3+, Pd2+, H+, Cl-, (AuCl4)-,
