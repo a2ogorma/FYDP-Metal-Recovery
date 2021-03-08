@@ -1,6 +1,6 @@
 %Plots for stage one extraction/recovery of base metals
 %Select metal here
-metal = 3;
+metal = 1;
 metal_names = {'Copper';'Tin';'Iron';'Silver';'Gold';'Palladium'};
 ion_names = {'Cu2+', 'Sn2+', 'Fe2+', 'Fe3+', 'Ag+', 'Au3+', 'Pd2+'};
 propertiesMetals
@@ -29,7 +29,14 @@ set(f, 'DefaultLegendLocation', 'southwest');
 sgtitle(metal_names(metal))
 set(gcf, 'Position',  [40, 40, 1500, 700])
 
-i = 5; %initial index
+%find where solver failed and eliminate those time steps
+te = results.te;
+ie = results.ie;
+for j = 1:1:numel(te)
+    t_index = find(te(j));
+end
+
+i = 400; %initial index
 tf = size(t);
 if metal == 3 %Iron -- Two ions in this case
     Fe2 = 3;

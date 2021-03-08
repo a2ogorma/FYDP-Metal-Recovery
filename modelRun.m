@@ -6,15 +6,24 @@ propertiesMetals;
 paramSetBase = struct;
 paramSetBase.temp = 298; %K
 paramSetBase.pres = 1; % atm
-paramSetBase.vol_cell = 0.04; %L
 paramSetBase.Q = 0.001/60;%; % L/s (flowrate)
+%cell dimension information
+paramSetBase.length = 1; % m length of electrodes in flow direction x
+paramSetBase.height = 0.5; % m height of electrodes
+paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
+paramSetBase.spacing_y = 0.035; %m spacing between electrodes 
+paramSetBase.n_epairs = 1; %number of anode cathode pairs
+%paramSetBase.vol_cell = paramSetBase.n_epairs*2*paramSetBase.spacing_y*...
+    paramSetBase.height*paramSetBase.length+2*paramSetBase.spacing_x;
+paramSetBase.vol_cell = 0.04; % L
 %Electrode areas
 paramSetBase.S_cat = 2*40*6*28*pi*0.03302/2.54; %cm^2, area of 6 x 28 cm wire mesh
+%paramSetBase.S_cat = paramSetBase.height*paramSetBase.length;
 paramSetBase.S_an = 36; %cm^2
+%paramSetBase.S_an = paramSetBase.S_cat;
 %Cross sectional area of cell
 paramSetBase.A_cell = 36; %cm^2
-%Length b/w electrodes
-paramSetBase.l = 3.5; %cm
+%paramSetBase.A_cell = paramSetBase.S_cat;
 %L (Initial) volume of bed holding the particles assuming the bed is completly full.
 paramSetBase.vol_lch = 0.09; 
 

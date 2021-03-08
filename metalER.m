@@ -21,7 +21,7 @@ function results = metalER(initSet,paramSet)
     %Cross sectional area of cell
     A_cell = paramSet.A_cell; %cm^2
     %Length b/w electrodes
-    l = paramSet.l; %cm
+    l = paramSet.spacing_y*100; %cm
     %Operation mode 
     mode = paramSet.mode; % 1 - potentiostat, 2 - galvanostat
     %Applied Voltage (potentiostat)

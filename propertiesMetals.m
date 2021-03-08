@@ -12,7 +12,7 @@ Solid mass order: Inert (If applicable), Cu, Sn, Fe, Ag, Au, Pd
 %}
 %{
 Reactions
-Cu2+ + 2e- <--> Cu(s) (1)
+[CuCl3]2- + 1e- <--> Cu(s) + 3Cl- (1)
 Sn2+ + 2e- <--> Sn(s) (2)
 Fe3+ + e- <--> Fe2+ (3)
 Fe2+ + 2e- <--> Fe(s) (4)
@@ -65,7 +65,7 @@ alphas = ones(1, 11)*0.5; %assume symmetric rxns
 
 % Standard half reaction potentials, V vs. SHE @ 298 K, 1 atm, 1 M conc.
     %https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)
-Eo_1 = 0.337;
+Eo_1 = 0.24; %turned down to account for chloride reactions occuring, which effectively speed up the rate of copper leaching
 Eo_2 = -0.13;
 Eo_3 = 0.77;
 Eo_4 = -0.44;

@@ -1,5 +1,5 @@
 function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
-    S_cat, mode, VI_app, n_particles, l, A_cell, solution, iL_default, foptions))
+    S_cat, mode, VI_app, n_particles, l, A_cell, solution, iL_default, foptions)
     %t = time span (s)
     %Cm = ionic concentration and solid mass vector (M, kg)
     %pres = system pressure (atm)
