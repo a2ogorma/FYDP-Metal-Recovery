@@ -12,8 +12,6 @@ resultsPrecious.productionRate = resultsPrecious.init.initSet.solidPCB.m_PCB_tot
 resultsPrecious.numberUnits = resultsBase.productionRate/resultsPrecious.productionRate;
 ModelResults.resultsPrecious = resultsPrecious;
 %% Impacts %%
-resultsEnvironmental = environmentalImpact(resultsPreprocessing, resultsBase, resultsPrecious);
+[resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreprocessing, resultsBase, resultsPrecious);
 ModelResults.resultsEnvironmental = resultsEnvironmental;
-
-resultsEconomics = Economics(resultsPreprocessing, resultsPrecious, resultsBase);
-ModelResults.resultsEconomics = resultsEconomics;
+ModelResults.resultsEconomic = resultsEconomic;

@@ -1,4 +1,4 @@
-function [resultsEnvironmental] = environmentalImpact(resultsPreprocessing, resultsBase, resultsPrecious)
+function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreprocessing, resultsBase, resultsPrecious)
     %energyIntensity
     PF = 0.95; %power factor for energy consumed to produced in electrical grid
     resultsEnvironmental.energy.pumps = 8760*resultsPreprocessing.CF*(resultsBase.numberUnits*resultsBase.practical.pump.BHP + resultsPrecious.numberUnits*resultsPrecious.practical.pump.BHP); %make sure in kWh
@@ -33,17 +33,19 @@ function [resultsEnvironmental] = environmentalImpact(resultsPreprocessing, resu
     CADUSDconv = 1.27;
     %grinder
     x = resultsPreprocessing.grinder.power; %kW
-    resultsEconomic.grinder.Cp = 0.0028*x^3-1.254*x^2+269.26*x+10731;
-    resultsEconomic.grinder.Fbm = 2.8;
-    resultsEconomic.grinder.capcost = CEPCI*CADUSDconv*resultsEconomic.grinder.Cp*resultsEconomic.grinder.Fbm;
+    resultsEconomic.preprocessing.grinder.Cp = 0.0028*x^3-1.254*x^2+269.26*x+10731;
+    resultsEconomic.preprocessing.grinder.Fbm = 2.8;
+    resultsEconomic.preprocessing.grinder.capcost = CEPCI*CADUSDconv*resultsEconomic.preprocessing.grinder.Cp*resultsEconomic.preprocessing.grinder.Fbm;
     %magneticdrum
-    resultsEconomic.drum.Cp = 13000;
-    resultsEconomic.drum.Fbm = 1;
-    resultsEconomic.drum.capcost = CADUSDconv*resultsEconomic.drum.Cp*resultsEconomic.drum.Fbm;
+    resultsEconomic.preprocessing.drum.Cp = 13000;
+    resultsEconomic.preprocessing.drum.Fbm = 1;
+    resultsEconomic.preprocessing.drum.capcost = CADUSDconv*resultsEconomic.preprocessing.drum.Cp*resultsEconomic.preprocessing.drum.Fbm;
     %ESP
-    resultsEconomic.ESP.Cp = 30000;%random number
-    resultsEconomic.ESP.Fbm = 1;
-    resultsEconomic.ESP.capcost = CADUSDconv*resultsEconomic.ESP.Cp*resultsEconomic.ESP.Fbm;
+    resultsEconomic.preprocessing.ESP.Cp = 30000;%random number
+    resultsEconomic.preprocessing.ESP.Fbm = 1;
+    resultsEconomic.preprocessing.ESP.capcost = CADUSDconv*resultsEconomic.preprocessing.ESP.Cp*resultsEconomic.preprocessing.ESP.Fbm;
+    %preprocessingtotal
+    resultsEconomic.preprocessing.capcost = resultsEconomic.preprocessing.grinder.capcost + resultsEconomic.preprocessing.drum.capcost + resultsEconomic.preprocessing.ESP.capcost;
     
     % Base Metal stage
     %pumpBase
@@ -72,7 +74,9 @@ function [resultsEnvironmental] = environmentalImpact(resultsPreprocessing, resu
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
     resultsEconomic.baseStage.anodeCost = resultsBase.numberUnits*(((resultsBase.init.paramSet.n_epairs/2)+1)/(resultsBase.init.paramSet.n_epairs/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
-   
+    %basecapcosttotal
+    resultsEconomic.baseStage.capcost = resultsEconomic.baseStage.pump.capcost + resultsEconomic.baseStage.drive.capcost + resultsEconomic.baseStage.leaching.capcost + resultsEconomic.baseStage.electrowinning.capcost + resultsEconomic.baseStage.cathodecost + resultsEconomic.baseStage.anodecost;
+    
     % Precious Metal stage
     %pumpPrecious
     resultsEconomic.preciousStage.pump = pumpCost(resultsPrecious.practical.pump.shaftPower,FM,resultsPrecious.numberUnits,CEPCI,CADUSDconv);
@@ -95,14 +99,23 @@ function [resultsEnvironmental] = environmentalImpact(resultsPreprocessing, resu
     thicknessCathode = 0.05; %m, temporary
     matDensityCathode = 11343;%kg/m3, lead
     matCostCathode = 1.61;%$/kg, lead
-    resultsEconomic.preciousStage.cathodeCost = resultsPrecious.numberUnits*(A_cell/2)*thicknessCathode*matDensityCathode*matCostCathode;
+    resultsEconomic.preciousStage.cathodecost = resultsPrecious.numberUnits*(A_cell/2)*thicknessCathode*matDensityCathode*matCostCathode;
     thicknessAnode = 0.05; %m, temporary
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
-    resultsEconomic.preciousStage.anodeCost = resultsPrecious.numberUnits*(((resultsPrecious.init.paramSet.n_epairs/2)+1)/(resultsPrecious.init.paramSet.n_epairs/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    resultsEconomic.preciousStage.anodecost = resultsPrecious.numberUnits*(((resultsPrecious.init.paramSet.n_epairs/2)+1)/(resultsPrecious.init.paramSet.n_epairs/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    %preciouscapcosttotal
+    resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost;
     
-    %%%%%ADD rectifier costs
-    %%%%% add total capital cost amount summation
+    %%%%%ADD rectifier costs maybe?
+    %totalcapcost
+    resultsEconomic.capcost = resultsEconomic.preciousStage.capcost + resultsEconomic.baseStage.capcost + resultsEconomic.preprocessing.capcost;
+    contingencyandfees = 0.18;
+    greenfield = 0.3; %auxiliary facilities and utilities supply
+    resultsEconomic.fixedcost = (1+contingencyandfees+greenfield)*resultsEconomic.capcost;
+    workingCapital = 0.15; % 10-20%
+    resultsEconomic.workingCapital = workingCapital*resultsEconomic.fixedCost;
+    resultsEconomic.totalCapitalInvestment = resultsEconomic.fixedcost+resultsEconomic.workingCapital;
     
     % Operating
     %Chemical costs
@@ -117,20 +130,68 @@ function [resultsEnvironmental] = environmentalImpact(resultsPreprocessing, resu
     %sodium hydroxide addition for pH balancing?
     
     %Labour costs
-    labourCost = 17; %$/hr
-    %add more labour stuff here
-    
+    labourCost = 20; %$/hr - suggestion from 480
+    labourDensity = 3;%people working while plant operating
+    labourHours = 8760*resultsPreprocessing.CF*labourDensity; %Assumed 3 people working per working hours rn
+    resultsEconomic.operating.labourCost = labourHours*labourCost;
+    resultsEconomic.operating.supervisorCost = 0.15*resultsEconomic.operating.labourCost; %10-30% supervisory and clerical according to 480
+    labCharges = 0.15;
+    resultsEconomic.operating.labCharges = labCharges*resultsEconomic.operating.labourCost;
     %Electrical
     ElecCost = 0.139; % $/kWh
     resultsEconomic.operating.energyCost =  resultsEnvironmental.energy.total*ElecCost;
     
-    %overall operating
+    %Waste disposal
+    wastewaterDisposal = 50000;%dummy val, $/L
+    resultsEconomic.operating.wastewaterDisposal = wastewaterDisposal*(resultsEnvironmental.water.annualWaterPrecious+resultsEnvironmental.water.annualWaterBase);
+    %Other direct expenses
+    mainrepair = 0.04; %2-10% of fixed capital for maintenance and repair
+    resultsEconomic.operating.mainrepair = mainrepair*resultsEconomic.fixedcost;
+    opersupplies = 0.15; %10-20% of maintenance and repair
+    resultsEconomic.operating.opersupplies = 0.15*resultsEconomic.mainrepair;
+    resultsEconomic.operating.subtotal = resultsEconomic.operating.solutionBaseCost + resultsEconomic.operating.solutionPreciousCost + resultsEconomic.operating.labourCost + resultsEconomic.operating.supervisorCost + resultsEconomic.operating.labCharges + resultsEconomic.operating.energyCost + resultsEconomic.operating.wastewaterDisposal + resultsEconomic.operating.mainrepair + resultsEconomic.operating.opersupplies;
+    patentsRoyalties = 0.03; % 0-6% of total expense
+    resultsEconomic.operating.patentsRoyalties = resultsEconomic.operating.subtotal*patentsRoyalties;
+    resultsEconomic.operating.totalDirectExpenses = resultsEconomic.operating.subtotal + resultsEconomic.operating.patentsRoyalties;
+    %indirect expenses
+    overheadRate = 0.6; %50-70% of oplabour, supervision, maintenance
+    resultsEconomic.operating.overhead = overheadRate*(resultsEconomic.operating.labourCost + resultsEconomic.operating.supervisorCost + resultsEconomic.operating.mainrepair);
+    localTaxes = 0.02; %1-3 of fixed cost
+    resultsEconomic.operating.localTaxes = localTaxes*resultsEconomic.fixedcost;
+    insurance = 0.01; % 1-2 of fixed cost
+    resultsEconomic.operating.insurance = insurance*resultsEconomic.fixedcost;
+    resultsEconomic.totalIndirectExpenses = resultsEconomic.operating.overhead + resultsEconomic.operating.localTaxes + resultsEconomic.operating.insurance;
+    %total MFG
+    resultsEconomic.totalManufacturingExpenses = resultsEconomic.totalIndirectExpenses +  resultsEconomic.operating.totalDirectExpenses;
+    
+    admin = 0.25; % of overhead
+    resultsEconomic.operating.admin = admin*resultsEconomic.operating.overhead;
+    distSelling = 0.10; % of total expense
+    resultsEconomic.operating.distSelling = distSelling*resultsEconomic.totalManufacturingExpenses;
+    RDcosts = 0.05;% of total expense
+    resultsEconomic.operating.RDcosts = RDcosts*resultsEconomic.totalManufacturingExpenses;
+    depreciation = 0.10; %10 of fixed capital
+    resultsEconomic.operating.depreciation = depreciation*resultsEconomic.fixedcost;
+    resultsEconomic.totalGeneralExpenses = resultsEconomic.operating.admin + resultsEconomic.operating.distSelling + resultsEconomic.operating.RDcosts + resultsEconomic.operating.depreciation;
+    
+    resultsEconomic.totalExpenses = resultsEconomic.totalGeneralExpenses+resultsEconomic.totalManufacturingExpenses;
     
     % Moneymaking
     %deposited metal selling amounts
+    metalPrices = [4.77 38.8896 1.7 1039.55 69335.99 95246.27]; %find better sources for this
+    sellingRate = 0.9;% 90% of metal price
+    platedBase = (resultsBase.electrowinning.m_plated(end,:)-resultsBase.electrowinning.m_plated(1,:));
+    resultsEconomic.revenue.Base = resultsEnvironmental.water.BaseCycles*platedBase*metalPrices*sellingRate;
+    platedPrecious = (resultsPrecious.electrowinning.m_plated(end,:)-resultsPrecious.electrowinning.m_plated(1,:));
+    resultsEconomic.revenue.Precious = resultsEnvironmental.water.PreciousCycles*platedPrecious*metalPrices*sellingRate;    
+    resultsEconomic.totalRevenue = resultsEconomic.revenue.Base + resultsEconomic.revenue.Precious;
     
-    % Economics finishing metrics
-    
+    resultsEconomic.netAnnualbeforeTax = resultsEconomic.totalRevenue - resultsEconomic.totalExpenses;
+    taxRate = 0.3;
+    resultsEconomic.metrics.netAnnualafterTax = (1-taxRate)*resultsEconomic.netAnnualbeforeTax;
+    resultsEconomic.metrics.percentOp_of_Rev = resultsEconomic.totalExpenses/resultsEconomic.totalRevenue;
+    resultsEconomic.metrics.paybackPeriod = resultsEconomic.fixedcost/resultsEconomic.metrics.netAnnualafterTax;
+    %maybe include discount rate for NPV calcs?
 end
 
 function [pump] = pumpCost(power,FM,numberUnits,CEPCI,CADUSDconv)
