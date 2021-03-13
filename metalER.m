@@ -1,7 +1,10 @@
 function results = metalER(initSet,paramSet)
     %{
-	3 CSTR in series model for metal extraction/recovery process
-    Order of compounds: Inert Cu Sn Al Pb Fe Ag Au Pd
+    Ionic species order:
+    Base: Cu2+, Sn2+, Fe2+, Fe3+, Ag+, Au3+, Pd2+, H+, Cl-, (AuCl4)-,
+    Precious: Cu2+, Sn2+, Fe2+, Fe3+, [Ag(S2O3)2]3-, [Au(S2O3)2]3-,
+        [Pd(S2O3)4]6-, H+, (S2O3)2-, (AuCl4)-
+    Solid mass order: Inert (If applicable), Cu, Sn, Fe, Ag, Au, Pd
     %}
     tic
     
@@ -14,6 +17,7 @@ function results = metalER(initSet,paramSet)
     temp = paramSet.temp; %K
     pres = paramSet.pres; % atm
     vol_cell = paramSet.vol_cell; %L
+    n_units = paramSet.n_units; 
     Q = paramSet.Q;%; % L/s (flowrate)
     %Electrode areas
     S_cat = paramSet.S_cat; %cm^2
@@ -83,11 +87,11 @@ function results = metalER(initSet,paramSet)
     if mode == 1
         discont_event = @(t,Cm) discont(t, Cm, temp, pres, vol_cell, ...
             vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, l, A_cell, ...
-            solution, iL_default, foptions);
+            n_units, solution, iL_default, foptions);
     elseif mode == 2
         discont_event = @(t,Cm) discont(t, Cm, temp, pres, vol_cell, ... 
             vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, l, A_cell, ...
-            solution, iL_default, foptions);
+            n_units, solution, iL_default, foptions);
     end
     %}
     %solve concentration profiles
@@ -98,11 +102,11 @@ function results = metalER(initSet,paramSet)
     if mode == 1
         balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, ...
             vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, l, A_cell, ...
-            solution, iL_default, foptions);
+            n_units, solution, iL_default, foptions);
     elseif mode == 2
         balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, ...
             vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, l, A_cell, ...
-            solution, iL_default, foptions);
+            n_units, solution, iL_default, foptions);
     end
     [t, Cm, te, Cme, ie] = ode15s(balance_solver, tspan, Cm_i, options);
     %[t, Cm] = ode45(balance_solver, tspan, Cm_i,options);
@@ -115,6 +119,7 @@ function results = metalER(initSet,paramSet)
     else
         %V, E_an, E_cat
         x0 = [2, 0.5, -0.5];
+        I_app = I_app/n_units;
     end
     E_corr0 = 0.2;
     %% Back calculating currents and potentials using solution for Cm matrix:
@@ -151,7 +156,8 @@ function results = metalER(initSet,paramSet)
         r_hardware = 10; %ohms
         
         %cell volume division
-        vol_cat = vol_cell/2;
+        vol_unit = vol_cell/n_units;
+        vol_cat = vol_unit/2;
         vol_an = vol_cat;
         
         %surface area calculation for cathode
@@ -246,10 +252,10 @@ function results = metalER(initSet,paramSet)
         I_cat_cat = i_cat_cat*S_cat;
         I_cat_cat(6) = 0; %silver can't be plated from AgCl(s)
         I_cat_an = i_cat_an.*[S_cat_p(j,1:2) S_cat S_cat_p(j,3:4) S_cat_p(j,4:5) S_cat_p(j,5:6) 0 S_cat];
-        I_cat(j,:) = I_cat_cat+I_cat_an;
+        I_cat(j,:) = (I_cat_cat+I_cat_an)*n_units;
         i_an(j,:) = onAnode.*i_BV(eta_an(j,:), i0, iLa_an(j,:), iLc_an(j,:), alphas, z, temp);
-        I_an(j,:) = i_an(j,:)*S_an;
-        I_cell(j,:) = I_cat(j,:)+I_an(j,:); %overall current for rxn i in cell
+        I_an(j,:) = i_an(j,:)*S_an*n_units;
+        I_cell(j,:) = (I_cat(j,:)+I_an(j,:)); %overall current for rxn i in cell
         I_cell_err(j) = sum(I_cell(j,:));
 
         %%%Leaching Unit solving%%%
@@ -326,6 +332,7 @@ function results = metalER(initSet,paramSet)
     results.leaching.iLa_corr = iLa_corr;
     results.leaching.iLc_corr = iLc_corr;
     results.leaching.exitflag = exitflag_cor;
+    
     results.electrowinning.catholyte_C = Cm(:,1:10);
     results.electrowinning.anolyte_C = Cm(:,11:20);
     results.electrowinning.E_an = E_an;
@@ -350,8 +357,8 @@ function results = metalER(initSet,paramSet)
     results.electrowinning.iLa_an = iLa_an;
     results.electrowinning.iLc_an = iLc_an;
     results.electrowinning.r_sol = r_sol;
-    results.electrowinning.S_cat_p = S_cat_p;
-    results.electrowinning.m_plated = Cm(:,38:43);
+    results.electrowinning.S_cat_p = S_cat_p*n_units;
+    results.electrowinning.m_plated = Cm(:,38:43)*n_units;
     results.electrowinning.exitflag_cell = exitflag_cell;
     
     results.PCB.r_particles = r_particles;

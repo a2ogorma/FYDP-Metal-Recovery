@@ -7,6 +7,8 @@ propertiesMetals
 results = resultsBase;
 init = initSetBase;
 param = paramSetBase;
+vol_cell = param.vol_cell;
+vol_lch = param.vol_lch;
 t = results.t;
 Cm = results.Cm;
 Erev_cat = results.electrowinning.Erev_cat;
@@ -23,7 +25,9 @@ m_PCB = results.PCB.massRem(:,2:7);
 m_PCB_i = m_PCB(1,:);
 m_lch = m_PCB_i - m_PCB;
 pct_lch = 100*m_lch./m_PCB_i;
-pct_rec = 100*m_plated./m_PCB_i;
+m_sol_i = ([Cm(1,1:2) Cm(1,3)+Cm(1,4) Cm(1,5:7)]*...
+    vol_cell+[Cm(1,21:22) Cm(1,23)+Cm(1,24) Cm(1,25:27)]*vol_lch).*mw(2:7)/1000; %mass of metals, kg in solution at t=0
+pct_rec = subplus(100*(m_plated-m_sol_i)./m_PCB_i);
 f = figure;
 set(f, 'DefaultLegendLocation', 'southwest');
 sgtitle(metal_names(metal))
@@ -36,7 +40,8 @@ for j = 1:1:numel(te)
     t_index = find(te(j));
 end
 
-i = 400; %initial index
+t = t/3600; %Convert to hrs
+i = 500; %initial index
 tf = size(t);
 if metal == 3 %Iron -- Two ions in this case
     Fe2 = 3;
@@ -48,35 +53,35 @@ if metal == 3 %Iron -- Two ions in this case
     plot(t(i:tf),Cm(i:tf,Fe2),t(i:tf),Cm(i:tf,Fe2+10),t(i:tf),Cm(i:tf,Fe2+20));
     title('Fe2+ Concentration');
     legend('Catholyte','Anolyte', 'Leaching');
-    xlabel('Time (s)');
+    xlabel('Time (hrs.)');
     ylabel('Concentration (M)');
     %Concentration Plot Fe2+
     subplot(2,4,2);
     plot(t(i:tf),Cm(i:tf,Fe3),t(i:tf),Cm(i:tf,Fe3+10),t(i:tf),Cm(i:tf,Fe3+20));
     title('Fe3+ Concentration');
     legend('Catholyte','Anolyte', 'Leaching');
-    xlabel('Time (s)');
+    xlabel('Time (hrs.)');
     ylabel('Concentration (M)');
     %Current for Fe3+ + e- <--> Fe2+
     subplot(2,4,3);
     plot(t(i:tf),I_cell(i:tf,rxn1),t(i:tf),I_corr(i:tf,rxn1));
     title('Current: Fe3+/Fe2+')
     legend('Electrowinning','Leaching')
-    xlabel('Time (s)')
+    xlabel('Time (hrs.)')
     ylabel('Current (A)')
     %Current for Fe2+ + e- <--> Fe(s)
     subplot(2,4,4);
     plot(t(i:tf),I_cell(i:tf,rxn2),t(i:tf),I_corr(i:tf,rxn2));
     title('Current: Fe2+/Fe(s)')
     legend('Electrowinning','Leaching')
-    xlabel('Time (s)')
+    xlabel('Time (hrs.)')
     ylabel('Current (A)')
     %Mass
     subplot(2,4,5);
     plot(t(i:tf),pct_lch(i:tf,metal),t(i:tf),pct_rec(i:tf,metal));
     title(['Initial mass: ' num2str(m_PCB_i(metal)) ' kg']);
     legend('Metal leached','Metal recovered');
-    xlabel('Time (s)');
+    xlabel('Time (hrs.)');
     ylabel('% mass');
     %Nernst
     subplot(2,4,6);
@@ -100,14 +105,14 @@ elseif metal > 3 %Precious metals
     plot(t(i:tf),Cm(i:tf,cation),t(i:tf),Cm(i:tf,cation+10),t(i:tf),Cm(i:tf,cation+20));
     title('Concentrations');
     legend('Catholyte','Anolyte', 'Leaching');
-    xlabel('Time (s)');
+    xlabel('Time (hrs.)');
     ylabel('Concentration (M)');
     %Mass
     subplot(2,3,3);
     plot(t(i:tf),pct_lch(i:tf,metal),t(i:tf),pct_rec(i:tf,metal));
     title(['Initial mass: ' num2str(m_PCB_i(metal)) ' kg']);
     legend('Metal leached','Metal recovered');
-    xlabel('Time (s)');
+    xlabel('Time (hrs.)');
     ylabel('% mass');
     if metal == 4 %Ag
         rxnCl = rxn+1;
@@ -116,7 +121,7 @@ elseif metal > 3 %Precious metals
         plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn)+I_corr(i:tf,rxnCl));
         title('Currents')
         legend('Electrowinning','Leaching')
-        xlabel('Time (s)')
+        xlabel('Time (hrs.)')
         ylabel('Current (A)')
         %Nernst
         subplot(2,3,4);
@@ -138,7 +143,7 @@ elseif metal > 3 %Precious metals
         plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn)+I_corr(i:tf,rxnCl));
         title('Currents')
         legend('Electrowinning','Leaching')
-        xlabel('Time (s)')
+        xlabel('Time (hrs.)')
         ylabel('Current (A)')
         %Nernst
         subplot(2,3,4);
@@ -159,7 +164,7 @@ elseif metal > 3 %Precious metals
         plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn));
         title('Currents')
         legend('Electrowinning','Leaching')
-        xlabel('Time (s)')
+        xlabel('Time (hrs.)')
         ylabel('Current (A)')
         %Nernst
         subplot(2,3,4);
@@ -184,21 +189,21 @@ else
     plot(t(i:tf),Cm(i:tf,cation),t(i:tf),Cm(i:tf,cation+10),t(i:tf),Cm(i:tf,cation+20));
     title('Concentrations');
     legend('Catholyte','Anolyte', 'Leaching');
-    xlabel('Time (s)');
+    xlabel('Time (hrs.)');
     ylabel('Concentration (M)');
     %Currents
     subplot(2,3,2);
     plot(t(i:tf),I_cell(i:tf,rxn),t(i:tf),I_corr(i:tf,rxn));
     title('Currents')
     legend('Electrowinning','Leaching')
-    xlabel('Time (s)')
+    xlabel('Time (hrs.)')
     ylabel('Current (A)')
     %Mass
     subplot(2,3,3);
     plot(t(i:tf),pct_lch(i:tf,metal),t(i:tf),pct_rec(i:tf,metal));
     title(['Initial mass: ' num2str(m_PCB_i(metal)) ' kg']);
     legend('Metal leached','Metal recovered');
-    xlabel('Time (s)');
+    xlabel('Time (hrs.)');
     ylabel('% mass');
     %Nernst
     subplot(2,3,4);

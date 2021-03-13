@@ -65,18 +65,18 @@ alphas = ones(1, 11)*0.5; %assume symmetric rxns
 
 % Standard half reaction potentials, V vs. SHE @ 298 K, 1 atm, 1 M conc.
     %https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)
-Eo_1 = 0.24; %turned down to account for chloride reactions occuring, which effectively speed up the rate of copper leaching
-Eo_2 = -0.13;
+Eo_1 = 0.245; %turned down to account for chloride reactions occuring, which effectively speed up the rate of copper leaching
+Eo_2 = -0.1375;
 Eo_3 = 0.77;
 Eo_4 = -0.44;
 Eo_6 = 0.2223;
-Eo_8 = 0.93;
+Eo_8 = 1.002;
 Eo_10 = 0;
 Eo_11  = 1.229;
 if solution == 1 %Cl-, base metal system
     Eo_5 = 0.7996;
-    Eo_7 = 1.52;
-    Eo_9 = 0.915;
+    Eo_7 = 1.498;
+    Eo_9 = 0.951;
 else %S2O3, precious metal system
     Eo_5 = 0.060113;
     Eo_7 = 0.153; 

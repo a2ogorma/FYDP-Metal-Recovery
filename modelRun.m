@@ -6,18 +6,18 @@ propertiesMetals;
 paramSetBase = struct;
 paramSetBase.temp = 298; %K
 paramSetBase.pres = 1; % atm
-paramSetBase.Q = 0.001/60;%; % L/s (flowrate)
+paramSetBase.Q = 0.00653/60;%; % L/s (flowrate)
 %cell dimension information
-paramSetBase.length = 1; % m length of electrodes in flow direction x
-paramSetBase.height = 0.5; % m height of electrodes
-paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
+paramSetBase.length = 0.06; % m length of electrodes in flow direction x
+paramSetBase.height = 0.06; % m height of electrodes
+paramSetBase.spacing_x = 0.05; % m gap between end of electrode and vessel inlet/outlet
 paramSetBase.spacing_y = 0.035; %m spacing between electrodes 
-paramSetBase.n_epairs = 1; %number of anode cathode pairs
-%paramSetBase.vol_cell = paramSetBase.n_epairs*2*paramSetBase.spacing_y*...
-    paramSetBase.height*paramSetBase.length+2*paramSetBase.spacing_x;
-paramSetBase.vol_cell = 0.04; % L
+paramSetBase.n_units = 1; %number of anode-cathode surface pairs
+paramSetBase.vol_cell = (paramSetBase.n_units*paramSetBase.spacing_y*...
+    paramSetBase.height*paramSetBase.length+2*paramSetBase.spacing_x)/1000; %L
+%paramSetBase.vol_cell = 0.04; % L, volume of entire cell
 %Electrode areas
-paramSetBase.S_cat = 2*40*6*28*pi*0.03302/2.54; %cm^2, area of 6 x 28 cm wire mesh
+paramSetBase.S_cat = 36; %cm^2, area of 6 x 28 cm wire mesh
 %paramSetBase.S_cat = paramSetBase.height*paramSetBase.length;
 paramSetBase.S_an = 36; %cm^2
 %paramSetBase.S_an = paramSetBase.S_cat;
@@ -25,14 +25,15 @@ paramSetBase.S_an = 36; %cm^2
 paramSetBase.A_cell = 36; %cm^2
 %paramSetBase.A_cell = paramSetBase.S_cat;
 %L (Initial) volume of bed holding the particles assuming the bed is completly full.
-paramSetBase.vol_lch = 0.09; 
+paramSetBase.vol_lch = 2.54^2*pi/4*10/1000; %L
+paramSetBase.vol_cell = 0.310-paramSetBase.vol_lch;
 
 paramSetBase.mode = 2; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
 paramSetBase.V_app = 3; %V
 %Applied Current to Cell (Galvanostat)
-paramSetBase.I_app = 0.5; %A
-paramSetBase.tfinal = 35*3600; %s
+paramSetBase.I_app = 36*0.01414; %A
+paramSetBase.tfinal = 36.5*3600; %s
 
 
 %Max current density for all rxns
@@ -51,7 +52,7 @@ m_cat = rho(6)*V_cat; %Iron mass
 %% Initial concentration specifications
 initSetBase = struct;
 %characteristics of solid PCB input
-initSetBase.solidPCB.m_PCB_total = 0.07;%kg Mass of crushed PCBs
+initSetBase.solidPCB.m_PCB_total = 0.02;%kg Mass of crushed PCBs
 initSetBase.solidPCB.r_particles = 0.001;%m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
 %Weight fraction composition of PCB
 %Inert Cu Sn Fe 
@@ -64,10 +65,10 @@ initSetBase.m_deposited = [0 0 m_cat 0 0 0];
 initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious metal
 %initial concentrations in mol/L
 %Cell Concentrations (recovery)
-initSetBase.solution.Ci_Cu2_cell = 0.01;
+initSetBase.solution.Ci_Cu2_cell = 0.025;
 initSetBase.solution.Ci_Sn2_cell = 0.0;
-initSetBase.solution.Ci_Fe2_cell = 0.01;
-initSetBase.solution.Ci_Fe3_cell = 0.5;
+initSetBase.solution.Ci_Fe2_cell = 0.001;
+initSetBase.solution.Ci_Fe3_cell = 0.6;
 initSetBase.solution.Ci_Ag_cell = 0.00;
 initSetBase.solution.Ci_Au3_cell = 0.0;
 initSetBase.solution.Ci_Pd2_cell = 0.0;
