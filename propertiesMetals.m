@@ -42,10 +42,9 @@ if solution == 1 %Cl-, base metal system
     i0_9 = 7.3E-9;
 else %S2O3, precious metal system
     active = [0 0 1 1 1 0 1 0 1 1 1];
-    i0_5 = 4e-9; %Aidan fill these out for the thiosulfate rxns pls
-    i0_7 = 2E-8; %value of dissolution including Na2S in dissolution 
-        %reaction from https://link-springer-com.proxy.lib.uwaterloo.ca/article/10.1134/S1023193506040021, converting A/cm2 to A/m2 
-    i0_9 = 7.3E-9;
+    i0_5 = 1.095E-5; %converted from Zelinsky & Ershov, 2008, which is TU based, using the TU and thiosulfate examples of Au+ to scale down
+    i0_7 = 1.80E-6; %Baron et al. 2013
+    i0_9 = 7.3E-5;
 end
 i0_1 = 5E-5; %Cu
 i0_2 = 5E-6; %Sn
@@ -62,7 +61,15 @@ i0 = active.*[i0_1 i0_2 i0_3 i0_4 i0_5 i0_6 i0_7 i0_8 i0_9 i0_10 i0_11];
 % charge transfer coefficients, m/s
 global alphas
 alphas = ones(1, 11)*0.5; %assume symmetric rxns 
-
+if solution == 1 %Cl-, base metal system
+    alphas(5) = 0.5;
+    alphas(7) = 0.5;
+    alphas(9) = 0.5;
+else %S2O3, precious metal system
+    alphas(5) = 0.7;
+    alphas(7) = 0.56;
+    alphas(9) = 0.5;
+end
 % Standard half reaction potentials, V vs. SHE @ 298 K, 1 atm, 1 M conc.
     %https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)
 Eo_1 = 0.245; %turned down to account for chloride reactions occuring, which effectively speed up the rate of copper leaching
@@ -78,9 +85,9 @@ if solution == 1 %Cl-, base metal system
     Eo_7 = 1.498;
     Eo_9 = 0.951;
 else %S2O3, precious metal system
-    Eo_5 = 0.060113;
-    Eo_7 = 0.153; 
-    Eo_9 = 0.0862;
+    Eo_5 = 0.015; %average value between Oraby and Jeffrey, 2010 and Deutsch, 2012
+    Eo_7 = 0.153; %Watling, 2007; Kasper, Veit, Garcia Gabaldon, & Pérez-Herranz, 2017
+    Eo_9 = -0.000116; %(Grosse, Dicinoski, Shaw, & Haddad, 2003)
 end
 global Eo
 Eo = [Eo_1 Eo_2 Eo_3 Eo_4 Eo_5 Eo_6 Eo_7 Eo_8 Eo_9 Eo_10 Eo_11];
