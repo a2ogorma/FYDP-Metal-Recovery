@@ -12,7 +12,6 @@ function results = metalER(initSet,paramSet)
     m_deposited = initSet.m_deposited;
     %for solution, 1 is for Cl- base metal system, 2 is for S2o3- precious metal system
     solution = initSet.solution.type;
-    propertiesMetals %calls all the property values as set in the applicable file.
     % system parameters
     temp = paramSet.temp; %K
     pres = paramSet.pres; % atm
@@ -25,7 +24,11 @@ function results = metalER(initSet,paramSet)
     %Cross sectional area of cell
     A_cell = paramSet.A_cell; %cm^2
     %Length b/w electrodes
-    l = paramSet.spacing_y*100; %cm
+    d = paramSet.spacing_y*100; %cm
+    %Height of electrodes/cell
+    height = paramSet.height; %m
+    %length of electrodes in direction of flow
+    len = paramSet.length; %m
     %Operation mode 
     mode = paramSet.mode; % 1 - potentiostat, 2 - galvanostat
     %Applied Voltage (potentiostat)
@@ -50,6 +53,7 @@ function results = metalER(initSet,paramSet)
     %masses of each component:
     m_PCB_i = m_PCB_total_i*wtfrac_PCB_i;
     %Convert to volume and volume fraction
+    global rho
     V_PCB_i = m_PCB_i./rho; %Element volumes in m^3
     vfrac_PCB_i = V_PCB_i/sum(V_PCB_i);
     V_PCB_total_i = sum(V_PCB_i);
@@ -69,6 +73,19 @@ function results = metalER(initSet,paramSet)
     %Calculate number of crushed PCB particles
     n_particles = sum(V_PCB_i)*3/(4*pi*r_particles_i^3);
     
+    %mass transfer coefficient calculation (flat plate assumption for cell, sphere for lch bed)
+    global rho_e mu_e Dab km_cell Sc
+    u_cell = Q/n_units/1000/(d/100*height); %m/s
+    Re_cell = u_cell*rho_e*len/mu_e; %dimensionless
+    Sc = mu_e/rho_e./Dab;
+    if Re_cell <= 2E5 %laminar
+        Sh_cell = 0.664*Re_cell^0.5.*Sc.^(1/3);
+    else %turbulent
+        Sh_cell = 0.0365*Re_cell^0.8.*Sc.^(1/3);
+    end
+    km_cell = Sh_cell.*Dab/len; %m/s 
+    
+
     %global initial guess variable for electrowinning solver
     global x0 E_corr0
     if mode == 1
@@ -76,9 +93,9 @@ function results = metalER(initSet,paramSet)
         x0 = [0.5, 0.1, -0.1];
     else
         %V, E_an, E_cat
-        x0 = [2, 0.5, -0.5];
+        x0 = [1, 0.3, -0.3];
     end
-    E_corr0 = 0.2; %initial guess for corrosion potential
+    E_corr0 = 0.1; %initial guess for corrosion potential
     
     %initializing solution concentration and solid mass vector
     Cm_i = [initSet.solution.Ci_cell initSet.solution.Ci_cell initSet.solution.Ci_lch m_PCB_i m_deposited];
@@ -86,11 +103,11 @@ function results = metalER(initSet,paramSet)
     %Function for detect discontinuities in corrosion and solver failures
     if mode == 1
         discont_event = @(t,Cm) discont(t, Cm, temp, pres, vol_cell, ...
-            vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, l, A_cell, ...
+            vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, d, A_cell, ...
             n_units, solution, iL_default, foptions);
     elseif mode == 2
         discont_event = @(t,Cm) discont(t, Cm, temp, pres, vol_cell, ... 
-            vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, l, A_cell, ...
+            vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, d, A_cell, ...
             n_units, solution, iL_default, foptions);
     end
     %}
@@ -101,16 +118,16 @@ function results = metalER(initSet,paramSet)
     options = odeset('NonNegative',1:43, 'Events', discont_event, 'RelTol', 1e-7, 'AbsTol', 1e-11);
     if mode == 1
         balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, ...
-            vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, l, A_cell, ...
+            vol_lch, Q, S_an, S_cat, mode, V_app, n_particles, d, A_cell, ...
             n_units, solution, iL_default, foptions);
     elseif mode == 2
         balance_solver = @(t, Cm) ion_balance(t, Cm, temp, pres, vol_cell, ...
-            vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, l, A_cell, ...
+            vol_lch, Q, S_an, S_cat, mode, I_app, n_particles, d, A_cell, ...
             n_units, solution, iL_default, foptions);
     end
     [t, Cm, te, Cme, ie] = ode15s(balance_solver, tspan, Cm_i, options);
     %[t, Cm] = ode45(balance_solver, tspan, Cm_i,options);
-    
+    t
     disp("Post-processing")
     %Reset initial guesses
     if mode == 1
@@ -118,12 +135,13 @@ function results = metalER(initSet,paramSet)
         x0 = [0.5, 0.1, -0.1];
     else
         %V, E_an, E_cat
-        x0 = [2, 0.5, -0.5];
+        x0 = [1, 0.3, -0.3];
         I_app = I_app/n_units;
     end
     E_corr0 = 0.2;
     %% Back calculating currents and potentials using solution for Cm matrix:
-    for j = 1:1:length(t)
+    global F z i0 alphas lamda
+    for j = 1:1:numel(t)
         CmStep = Cm(j,:);
         
         m_PCB(j,:) = (CmStep(31:37));
@@ -152,7 +170,7 @@ function results = metalER(initSet,paramSet)
             CmStep(14)*lamda(4)+CmStep(15)*lamda(5)+CmStep(16)*lamda(6)+CmStep(17)*lamda(7)+...
             CmStep(18)*lamda(8)+CmStep(19)*lamda(9)+CmStep(20)*lamda(10));
         kappa_avg = mean([kappa_an kappa_cat]);
-        r_sol = l/A_cell/kappa_avg*100;
+        r_sol = d/A_cell/kappa_avg*100; %ohms
         r_hardware = 10; %ohms
         
         %cell volume division
@@ -166,60 +184,66 @@ function results = metalER(initSet,paramSet)
         S_cat_p(j,:) = (S_cat*vfrac_cat);
         
         %limiting current calculations for cathode side
-        iLc_cat(j,1) = z(1)*F*km(1)*CmStep(1)+eps;
-        iLc_cat(j,2) = z(2)*F*km(2)*CmStep(2)+eps;
-        iLc_cat(j,3) = z(3)*F*km(4)*CmStep(4)+eps;
-        iLc_cat(j,4) = z(4)*F*km(3)*CmStep(3)+eps;
+        iLc_cat(j,1) = z(1)*F*km_cell(1)*CmStep(1)+eps;
+        iLc_cat(j,2) = z(2)*F*km_cell(2)*CmStep(2)+eps;
+        iLc_cat(j,3) = z(3)*F*km_cell(4)*CmStep(4)+eps;
+        iLc_cat(j,4) = z(4)*F*km_cell(3)*CmStep(3)+eps;
         iLc_cat(j,6) = -1;
-        iLc_cat(j,8) = z(8)*F*km(10)*CmStep(10)+eps;
-        iLc_cat(j,10) = z(10)*F*km(8)*CmStep(8)+eps;
-        iLc_cat(j,11) = z(11)*F*km(8)*CmStep(8)+eps;
+        iLc_cat(j,8) = z(8)*F*km_cell(10)*CmStep(10)+eps;
+        iLc_cat(j,10) = z(10)*F*km_cell(8)*CmStep(8)+eps;
+        iLc_cat(j,11) = z(11)*F*km_cell(8)*CmStep(8)+eps;
 
         iLa_cat(j,:) = iL_default*ones(1,11);
-        iLa_cat(j,3) = z(5)*F*km(3)*CmStep(3)+eps;
-        iLa_cat(j,6) = z(6)*F*km(9)*CmStep(9)+eps;
-        iLa_cat(j,8) = z(8)*F*km(9)*CmStep(9)/4+eps;
+        iLa_cat(j,3) = z(5)*F*km_cell(3)*CmStep(3)+eps;
+        iLa_cat(j,6) = z(6)*F*km_cell(9)*CmStep(9)+eps;
+        iLa_cat(j,8) = z(8)*F*km_cell(9)*CmStep(9)/4+eps;
 
         if solution == 1 %Cl-, base metal system
-            iLc_cat(j,5) = z(5)*F*km(5)*CmStep(5)+eps;
-            iLc_cat(j,7) = z(7)*F*km(6)*CmStep(6)+eps;
-            iLc_cat(j,9) = z(9)*F*km(7)*CmStep(7)+eps;
+            iLc_cat(j,5) = z(5)*F*km_cell(5)*CmStep(5)+eps;
+            iLc_cat(j,7) = z(7)*F*km_cell(6)*CmStep(6)+eps;
+            iLc_cat(j,9) = z(9)*F*km_cell(7)*CmStep(7)+eps;
         else %S2O3, precious metal system
-            iLc_cat(j,5) = z(5)*F*km(5)*CmStep(5)+eps;
-            iLc_cat(j,7) = z(7)*F*km(6)*CmStep(6)+eps;
-            iLc_cat(j,9) = z(9)*F*km(7)*CmStep(7)+eps;
-            iLa_cat(j,5) = z(5)*F*km(9)*CmStep(9)/2+eps;
-            iLa_cat(j,7) = z(7)*F*km(9)*CmStep(9)/2+eps;
-            iLa_cat(j,9) = z(9)*F*km(9)*CmStep(9)/4+eps;
+            iLc_cat(j,5) = z(5)*F*km_cell(5)*CmStep(5)+eps;
+            iLc_cat(j,7) = z(7)*F*km_cell(6)*CmStep(6)+eps;
+            iLc_cat(j,9) = z(9)*F*km_cell(7)*CmStep(7)+eps;
+            iLa_cat(j,5) = z(5)*F*km_cell(9)*CmStep(9)/2+eps;
+            iLa_cat(j,7) = z(7)*F*km_cell(9)*CmStep(9)/2+eps;
+            iLa_cat(j,9) = z(9)*F*km_cell(9)*CmStep(9)/4+eps;
         end
 
         %limiting current calculations for anode side
-        iLc_an(j,1) = z(1)*F*km(1)*CmStep(11)+eps;
-        iLc_an(j,2) = z(2)*F*km(2)*CmStep(12)+eps;
-        iLc_an(j,3) = z(3)*F*km(4)*CmStep(14)+eps;
-        iLc_an(j,4) = z(4)*F*km(3)*CmStep(13)+eps;
+        iLc_an(j,1) = z(1)*F*km_cell(1)*CmStep(11)+eps;
+        iLc_an(j,2) = z(2)*F*km_cell(2)*CmStep(12)+eps;
+        iLc_an(j,3) = z(3)*F*km_cell(4)*CmStep(14)+eps;
+        iLc_an(j,4) = z(4)*F*km_cell(3)*CmStep(13)+eps;
         iLc_an(j,6) = iL_default;
-        iLc_an(j,8) = z(8)*F*km(10)*CmStep(20)+eps;
-        iLc_an(j,10) = z(10)*F*km(8)*CmStep(18)+eps;
-        iLc_an(j,11) = z(11)*F*km(8)*CmStep(18)+eps;
+        iLc_an(j,8) = z(8)*F*km_cell(10)*CmStep(20)+eps;
+        iLc_an(j,10) = z(10)*F*km_cell(8)*CmStep(18)+eps;
+        iLc_an(j,11) = z(11)*F*km_cell(8)*CmStep(18)+eps;
 
         iLa_an(j,:) = iL_default*ones(1,11);
-        iLa_an(j,3) = z(5)*F*km(3)*CmStep(13)+eps;
-        iLa_an(j,6) = z(6)*F*km(9)*CmStep(19)+eps;
-        iLa_an(j,8) = z(8)*F*km(9)*CmStep(19)/4+eps;
-
+        iLa_an(j,3) = z(5)*F*km_cell(3)*CmStep(13)+eps;
+        iLa_an(j,6) = z(6)*F*km_cell(9)*CmStep(19)+eps;
+        iLa_an(j,8) = z(8)*F*km_cell(9)*CmStep(19)/4+eps;
+        
         if solution == 1 %Cl-, base metal system
-            iLc_an(j,5) = z(5)*F*km(5)*CmStep(15)+eps;
-            iLc_an(j,7) = z(7)*F*km(6)*CmStep(16)+eps;
-            iLc_an(j,9) = z(9)*F*km(7)*CmStep(17)+eps;
+            iLc_an(j,5) = z(5)*F*km_cell(5)*CmStep(15)+eps;
+            iLc_an(j,7) = z(7)*F*km_cell(6)*CmStep(16)+eps;
+            iLc_an(j,9) = z(9)*F*km_cell(7)*CmStep(17)+eps;
         else %S2O3, precious metal system
-            iLc_an(j,5) = z(5)*F*km(5)*CmStep(15)+eps;
-            iLc_an(j,7) = z(7)*F*km(6)*CmStep(16)+eps;
-            iLc_an(j,9) = z(9)*F*km(7)*CmStep(17)+eps;
-            iLa_an(j,5) = z(5)*F*km(9)*CmStep(19)/2+eps;
-            iLa_an(j,7) = z(7)*F*km(9)*CmStep(19)/2+eps;
-            iLa_an(j,9) = z(9)*F*km(9)*CmStep(19)/4+eps;
+            iLc_an(j,5) = z(5)*F*km_cell(5)*CmStep(15)+eps;
+            iLc_an(j,7) = z(7)*F*km_cell(6)*CmStep(16)+eps;
+            iLc_an(j,9) = z(9)*F*km_cell(7)*CmStep(17)+eps;
+            iLa_an(j,5) = z(5)*F*km_cell(9)*CmStep(19)/2+eps;
+            iLa_an(j,7) = z(7)*F*km_cell(9)*CmStep(19)/2+eps;
+            iLa_an(j,9) = z(9)*F*km_cell(9)*CmStep(19)/4+eps;
         end
+        
+        %Convert units to A/cm^2 From A*m/dm^3 
+        iLc_an(j,:) = iLc_an(j,:)*0.1;
+        iLc_cat(j,:) = iLc_cat(j,:)*0.1;
+        iLa_an(j,:) = iLa_an(j,:)*0.1;
+        iLa_cat(j,:) = iLa_cat(j,:)*0.1;
         
         %%%Electrowinning Cell solving%%%
         %solve cell currents and electrode potentials
@@ -252,37 +276,47 @@ function results = metalER(initSet,paramSet)
         I_cat_cat = i_cat_cat*S_cat;
         I_cat_cat(6) = 0; %silver can't be plated from AgCl(s)
         I_cat_an = i_cat_an.*[S_cat_p(j,1:2) S_cat S_cat_p(j,3:4) S_cat_p(j,4:5) S_cat_p(j,5:6) 0 S_cat];
-        I_cat(j,:) = (I_cat_cat+I_cat_an)*n_units;
+        I_cat(j,:) = (I_cat_cat+I_cat_an);
         i_an(j,:) = onAnode.*i_BV(eta_an(j,:), i0, iLa_an(j,:), iLc_an(j,:), alphas, z, temp);
-        I_an(j,:) = i_an(j,:)*S_an*n_units;
+        I_an(j,:) = i_an(j,:)*S_an;
         I_cell(j,:) = (I_cat(j,:)+I_an(j,:)); %overall current for rxn i in cell
         I_cell_err(j) = sum(I_cell(j,:));
-
+        
+        u_lch = 0.5; %m/s assumed in stirred tank
+        Re_lch = rho_e*u_lch*r_particles(j)*2/mu_e;
+        Pe_lch = Re_lch.*Sc;
+        Sh_lch = (4+1.21*Pe_lch.^(2/3)).^0.5;
+        km_lch(j,:) = Dab.*Sh_lch/r_particles(j)/2;
+        
         %%%Leaching Unit solving%%%
-        iLc_corr(j,1) = z(1)*F*km(1)*CmStep(21)+eps;
-        iLc_corr(j,2) = z(2)*F*km(2)*CmStep(22)+eps;
-        iLc_corr(j,3) = z(3)*F*km(4)*CmStep(24)+eps;
-        iLc_corr(j,4) = z(4)*F*km(3)*CmStep(23)+eps;
+        iLc_corr(j,1) = z(1)*F*km_lch(j,1)*CmStep(21)+eps;
+        iLc_corr(j,2) = z(2)*F*km_lch(j,2)*CmStep(22)+eps;
+        iLc_corr(j,3) = z(3)*F*km_lch(j,4)*CmStep(24)+eps;
+        iLc_corr(j,4) = z(4)*F*km_lch(j,3)*CmStep(23)+eps;
         iLc_corr(j,6) = iL_default;
-        iLc_corr(j,8) = z(8)*F*km(10)*CmStep(30)+eps;
-        iLc_corr(j,10) = z(10)*F*km(8)*CmStep(18)+eps;
-        iLc_corr(j,11) = z(11)*F*km(8)*CmStep(18)+eps;
+        iLc_corr(j,8) = z(8)*F*km_lch(j,10)*CmStep(30)+eps;
+        iLc_corr(j,10) = z(10)*F*km_lch(j,8)*CmStep(18)+eps;
+        iLc_corr(j,11) = z(11)*F*km_lch(j,8)*CmStep(18)+eps;
 
         iLa_corr(j,:) = iL_default*ones(1,11);
-        iLa_corr(j,3) = z(3)*F*km(3)*CmStep(23)+eps;
+        iLa_corr(j,3) = z(3)*F*km_lch(j,3)*CmStep(23)+eps;
 
         if solution == 1
-            iLc_corr(j,5) = z(5)*F*km(5)*CmStep(25)+eps;
-            iLc_corr(j,7) = z(7)*F*km(6)*CmStep(26)+eps;
-            iLc_corr(j,9) = z(9)*F*km(7)*CmStep(27)+eps;
+            iLc_corr(j,5) = z(5)*F*km_lch(j,5)*CmStep(25)+eps;
+            iLc_corr(j,7) = z(7)*F*km_lch(j,6)*CmStep(26)+eps;
+            iLc_corr(j,9) = z(9)*F*km_lch(j,7)*CmStep(27)+eps;
         else
-            iLc_corr(j,5) = z(5)*F*km(5)*CmStep(25)+eps;
-            iLc_corr(j,7) = z(7)*F*km(6)*CmStep(26)+eps;
-            iLc_corr(j,9) = z(9)*F*km(7)*CmStep(27)+eps;
-            iLa_corr(j,5) = z(5)*F*km(9)*CmStep(29)/2+eps;
-            iLa_corr(j,7) = z(7)*F*km(9)*CmStep(29)/2+eps;
-            iLa_corr(j,9) = z(9)*F*km(9)*CmStep(29)/4+eps;
+            iLc_corr(j,5) = z(5)*F*km_lch(j,5)*CmStep(25)+eps;
+            iLc_corr(j,7) = z(7)*F*km_lch(j,6)*CmStep(26)+eps;
+            iLc_corr(j,9) = z(9)*F*km_lch(j,7)*CmStep(27)+eps;
+            iLa_corr(j,5) = z(5)*F*km_lch(j,9)*CmStep(29)/2+eps;
+            iLa_corr(j,7) = z(7)*F*km_lch(j,9)*CmStep(29)/2+eps;
+            iLa_corr(j,9) = z(9)*F*km_lch(j,9)*CmStep(29)/4+eps;
         end
+        
+        %Convert units to A/cm^2 from A*m/dm^3
+        iLc_corr(j,:) = iLc_corr(j,:)*0.1;
+        iLa_corr(j,:) = iLa_corr(j,:)*0.1;
         
         %solve extraction lch corrosion rate
         on_PCB_cathode = [1 1 1 1 1 0 1 1 1 1 1];
@@ -331,6 +365,7 @@ function results = metalER(initSet,paramSet)
     results.leaching.I_corr_err = I_corr_err;
     results.leaching.iLa_corr = iLa_corr;
     results.leaching.iLc_corr = iLc_corr;
+    results.leaching.km_lch = km_lch;
     results.leaching.exitflag = exitflag_cor;
     
     results.electrowinning.catholyte_C = Cm(:,1:10);
@@ -341,12 +376,12 @@ function results = metalER(initSet,paramSet)
     results.electrowinning.Erev_an = Erev_an;
     results.electrowinning.eta_an = eta_an;
     results.electrowinning.eta_cat = eta_cat;
-    results.electrowinning.I_an = I_an;
+    results.electrowinning.I_an = I_an*n_units;
     results.electrowinning.i_an = i_an;
-    results.electrowinning.I_cat = I_cat;
+    results.electrowinning.I_cat = I_cat*n_units;
     results.electrowinning.i_cat = i_cat;
-    results.electrowinning.I_cell = I_cell;
-    results.electrowinning.I_cell_err = I_cell_err;
+    results.electrowinning.I_cell = I_cell*n_units;
+    results.electrowinning.I_cell_err = I_cell_err*n_units;
     if mode == 1
         results.electrowinning.I_calc = I_calc;
     else

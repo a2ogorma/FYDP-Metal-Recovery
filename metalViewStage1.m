@@ -41,7 +41,7 @@ for j = 1:1:numel(te)
 end
 
 t = t/3600; %Convert to hrs
-i = 500; %initial index
+i = 1; %initial index
 tf = size(t);
 if metal == 3 %Iron -- Two ions in this case
     Fe2 = 3;

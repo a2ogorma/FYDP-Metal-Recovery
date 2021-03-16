@@ -35,6 +35,7 @@ elseif solution == 2 %S2O3, precious metal system
 end
 
 % exchange current densities, A/cm^2
+global i0
 if solution == 1 %Cl-, base metal system
     active = [1 1 1 1 1 1 0 0 0 1 1];
     i0_5 = 4e-9;
@@ -55,7 +56,6 @@ i0_8 = 2E-8; %AuCl
 i0_10 = 1E-10; % H2. need to identify suitable electrode to help limit hydrogen evolution. 
     %From volcano plot in class, likely copper, gold or silver electrodes
 i0_11 = 1E-12; %OER
-global i0
 i0 = active.*[i0_1 i0_2 i0_3 i0_4 i0_5 i0_6 i0_7 i0_8 i0_9 i0_10 i0_11];
 
 % charge transfer coefficients, m/s
@@ -86,7 +86,7 @@ if solution == 1 %Cl-, base metal system
     Eo_9 = 0.951;
 else %S2O3, precious metal system
     Eo_5 = 0.015; %average value between Oraby and Jeffrey, 2010 and Deutsch, 2012
-    Eo_7 = 0.153; %Watling, 2007; Kasper, Veit, Garcia Gabaldon, & Pérez-Herranz, 2017
+    Eo_7 = 0.153; %Watling, 2007; Kasper, Veit, Garcia Gabaldon, & Pï¿½rez-Herranz, 2017
     Eo_9 = -0.000116; %(Grosse, Dicinoski, Shaw, & Haddad, 2003)
 end
 global Eo
@@ -148,3 +148,26 @@ mw_Au = 196.966;
 mw_Pd = 106.42;
 %index 1 empty to mark place of inert material in other arrays
 mw = [0 mw_Cu mw_Sn mw_Fe mw_Ag mw_Au mw_Pd];
+
+%Electrolyte properties
+global mu_e rho_e
+mu_e = 0.000969; %Pa*s https://pubs.acs.org/doi/pdf/10.1021/je00025a008
+rho_e = 1008; %kg/m^3, https://www.handymath.com/cgi-bin/hcltble3.cgi?submit=Entry
+
+%Ionic Diffusivities (See properties spreadsheet) 
+global Dab
+Dab_1 = 4.43E-09; %Cu2+
+Dab_2 = 4.43E-09; %Sn2+
+Dab_3 = 4.17E-09; %Fe2+
+Dab_4 = 2.78E-09; %Fe3+
+Dab_5 = 6.5E-10; %Ag+
+Dab_6 = 4.6E-10; %Au+
+Dab_7 = 3.02E-10; %Pd2+
+Dab_8 = 2.78E-09; %H+
+if solution == 1 %Base metal system
+    Dab_9 = 1.93E-09; %Cl-
+else
+    Dab_9 = 6.46E-10; %S2O3
+end
+Dab_10 = 4.6E-10; %AuCl4-
+Dab = [Dab_1 Dab_2 Dab_3 Dab_4 Dab_5 Dab_6 Dab_7 Dab_8 Dab_9 Dab_10]; %m^2/s

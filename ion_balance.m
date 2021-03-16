@@ -38,7 +38,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     4H+ + O2(g) + 4e- <--> 2H2O(l) (11)
     %}
     
-    global F z i0 km alphas lamda rho mw
+    global F z i0 km_cell alphas lamda rho mw rho_e mu_e Dab Sc
     
     if mode == 1 %potentiostat
         V_app = VI_app;
@@ -87,60 +87,66 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     S_cat_p = (S_cat*vfrac_cat)';
     
     %limiting current calculations for cathode side
-    iLc_cat(1) = z(1)*F*km(1)*Cm(1)+eps;
-    iLc_cat(2) = z(2)*F*km(2)*Cm(2)+eps;
-    iLc_cat(3) = z(3)*F*km(4)*Cm(4)+eps;
-    iLc_cat(4) = z(4)*F*km(3)*Cm(3)+eps;
+    iLc_cat(1) = z(1)*F*km_cell(1)*Cm(1)+eps;
+    iLc_cat(2) = z(2)*F*km_cell(2)*Cm(2)+eps;
+    iLc_cat(3) = z(3)*F*km_cell(4)*Cm(4)+eps;
+    iLc_cat(4) = z(4)*F*km_cell(3)*Cm(3)+eps;
     iLc_cat(6) = iL_default;
-    iLc_cat(8) = z(8)*F*km(10)*Cm(10)+eps;
-    iLc_cat(10) = z(10)*F*km(8)*Cm(8)+eps;
-    iLc_cat(11) = z(11)*F*km(8)*Cm(8)+eps;
+    iLc_cat(8) = z(8)*F*km_cell(10)*Cm(10)+eps;
+    iLc_cat(10) = z(10)*F*km_cell(8)*Cm(8)+eps;
+    iLc_cat(11) = z(11)*F*km_cell(8)*Cm(8)+eps;
     
     iLa_cat = iL_default*ones(1,11);
-    iLa_cat(3) = z(5)*F*km(3)*Cm(3)+eps;
-    iLa_cat(6) = z(6)*F*km(9)*Cm(9)+eps;
-    iLa_cat(8) = z(8)*F*km(9)*Cm(9)/4+eps;
+    iLa_cat(3) = z(5)*F*km_cell(3)*Cm(3)+eps;
+    iLa_cat(6) = z(6)*F*km_cell(9)*Cm(9)+eps;
+    iLa_cat(8) = z(8)*F*km_cell(9)*Cm(9)/4+eps;
     
     if solution == 1 %Cl-, base metal system
-    	iLc_cat(5) = z(5)*F*km(5)*Cm(5)+eps;
-        iLc_cat(7) = z(7)*F*km(6)*Cm(6)+eps;
-        iLc_cat(9) = z(9)*F*km(7)*Cm(7)+eps;
+    	iLc_cat(5) = z(5)*F*km_cell(5)*Cm(5)+eps;
+        iLc_cat(7) = z(7)*F*km_cell(6)*Cm(6)+eps;
+        iLc_cat(9) = z(9)*F*km_cell(7)*Cm(7)+eps;
     else %S2O3, precious metal system
-        iLc_cat(5) = z(5)*F*km(5)*Cm(5)+eps;
-        iLc_cat(7) = z(7)*F*km(6)*Cm(6)+eps;
-        iLc_cat(9) = z(9)*F*km(7)*Cm(7)+eps;
-        iLa_cat(5) = z(5)*F*km(9)*Cm(9)/2+eps;
-        iLa_cat(7) = z(7)*F*km(9)*Cm(9)/2+eps;
-        iLa_cat(9) = z(9)*F*km(9)*Cm(9)/4+eps;
+        iLc_cat(5) = z(5)*F*km_cell(5)*Cm(5)+eps;
+        iLc_cat(7) = z(7)*F*km_cell(6)*Cm(6)+eps;
+        iLc_cat(9) = z(9)*F*km_cell(7)*Cm(7)+eps;
+        iLa_cat(5) = z(5)*F*km_cell(9)*Cm(9)/2+eps;
+        iLa_cat(7) = z(7)*F*km_cell(9)*Cm(9)/2+eps;
+        iLa_cat(9) = z(9)*F*km_cell(9)*Cm(9)/4+eps;
     end
     
     %limiting current calculations for anode side
-    iLc_an(1) = z(1)*F*km(1)*Cm(11)+eps;
-    iLc_an(2) = z(2)*F*km(2)*Cm(12)+eps;
-    iLc_an(3) = z(3)*F*km(4)*Cm(14)+eps;
-    iLc_an(4) = z(4)*F*km(3)*Cm(13)+eps;
+    iLc_an(1) = z(1)*F*km_cell(1)*Cm(11)+eps;
+    iLc_an(2) = z(2)*F*km_cell(2)*Cm(12)+eps;
+    iLc_an(3) = z(3)*F*km_cell(4)*Cm(14)+eps;
+    iLc_an(4) = z(4)*F*km_cell(3)*Cm(13)+eps;
     iLc_an(6) = iL_default;
-    iLc_an(8) = z(8)*F*km(10)*Cm(20)+eps;
-    iLc_an(10) = z(10)*F*km(8)*Cm(18)+eps;
-    iLc_an(11) = z(11)*F*km(8)*Cm(18)+eps;
+    iLc_an(8) = z(8)*F*km_cell(10)*Cm(20)+eps;
+    iLc_an(10) = z(10)*F*km_cell(8)*Cm(18)+eps;
+    iLc_an(11) = z(11)*F*km_cell(8)*Cm(18)+eps;
     
     iLa_an = iL_default*ones(1,11);
-    iLa_an(3) = z(5)*F*km(3)*Cm(13)+eps;
-    iLa_an(6) = z(6)*F*km(9)*Cm(19)+eps;
-    iLa_an(8) = z(8)*F*km(9)*Cm(19)/4+eps;
+    iLa_an(3) = z(5)*F*km_cell(3)*Cm(13)+eps;
+    iLa_an(6) = z(6)*F*km_cell(9)*Cm(19)+eps;
+    iLa_an(8) = z(8)*F*km_cell(9)*Cm(19)/4+eps;
     
     if solution == 1 %Cl-, base metal system
-    	iLc_an(5) = z(5)*F*km(5)*Cm(15)+eps;
-        iLc_an(7) = z(7)*F*km(6)*Cm(16)+eps;
-        iLc_an(9) = z(9)*F*km(7)*Cm(17)+eps;
+    	iLc_an(5) = z(5)*F*km_cell(5)*Cm(15)+eps;
+        iLc_an(7) = z(7)*F*km_cell(6)*Cm(16)+eps;
+        iLc_an(9) = z(9)*F*km_cell(7)*Cm(17)+eps;
     else %S2O3, precious metal system
-        iLc_an(5) = z(5)*F*km(5)*Cm(15)+eps;
-        iLc_an(7) = z(7)*F*km(6)*Cm(16)+eps;
-        iLc_an(9) = z(9)*F*km(7)*Cm(17)+eps;
-        iLa_an(5) = z(5)*F*km(9)*Cm(19)/2+eps;
-        iLa_an(7) = z(7)*F*km(9)*Cm(19)/2+eps;
-        iLa_an(9) = z(9)*F*km(9)*Cm(19)/4+eps;
+        iLc_an(5) = z(5)*F*km_cell(5)*Cm(15)+eps;
+        iLc_an(7) = z(7)*F*km_cell(6)*Cm(16)+eps;
+        iLc_an(9) = z(9)*F*km_cell(7)*Cm(17)+eps;
+        iLa_an(5) = z(5)*F*km_cell(9)*Cm(19)/2+eps;
+        iLa_an(7) = z(7)*F*km_cell(9)*Cm(19)/2+eps;
+        iLa_an(9) = z(9)*F*km_cell(9)*Cm(19)/4+eps;
     end
+    
+    %Convert units to A/cm^2 From A*m/dm^3 
+    iLc_an = iLc_an*0.1;
+    iLc_cat = iLc_cat*0.1;
+    iLa_an = iLa_an*0.1;
+    iLa_cat = iLa_cat*0.1;
    
     %%%Electrowinning Cell solving%%%
     %solve cell currents and electrode potentials
@@ -177,30 +183,39 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     I_cell = I_unit*n_units;
     
     %%%Leaching Unit solving%%%
-    iLc_corr(1) = z(1)*F*km(1)*Cm(21)+eps;
-    iLc_corr(2) = z(2)*F*km(2)*Cm(22)+eps;
-    iLc_corr(3) = z(3)*F*km(4)*Cm(24)+eps;
-    iLc_corr(4) = z(4)*F*km(3)*Cm(23)+eps;
+    u_lch = 0.5; %m/s assumed in stirred tank
+    Re_lch = rho_e*u_lch*r_particles*2/mu_e;
+    Pe_lch = Re_lch.*Sc;
+    Sh_lch = (4+1.21*Pe_lch.^(2/3)).^0.5;
+    km_lch = Dab.*Sh_lch/r_particles/2;
+    
+    iLc_corr(1) = z(1)*F*km_lch(1)*Cm(21)+eps;
+    iLc_corr(2) = z(2)*F*km_lch(2)*Cm(22)+eps;
+    iLc_corr(3) = z(3)*F*km_lch(4)*Cm(24)+eps;
+    iLc_corr(4) = z(4)*F*km_lch(3)*Cm(23)+eps;
     iLc_corr(6) = iL_default;
-    iLc_corr(8) = z(8)*F*km(10)*Cm(30)+eps;
-    iLc_corr(10) = z(10)*F*km(8)*Cm(18)+eps;
-    iLc_corr(11) = z(11)*F*km(8)*Cm(18)+eps;
+    iLc_corr(8) = z(8)*F*km_lch(10)*Cm(30)+eps;
+    iLc_corr(10) = z(10)*F*km_lch(8)*Cm(18)+eps;
+    iLc_corr(11) = z(11)*F*km_lch(8)*Cm(18)+eps;
     
     iLa_corr = iL_default*ones(1,11);
-    iLa_corr(3) = z(3)*F*km(3)*Cm(23)+eps;
+    iLa_corr(3) = z(3)*F*km_lch(3)*Cm(23)+eps;
     
     if solution == 1
-        iLc_corr(5) = z(5)*F*km(5)*Cm(25)+eps;
-        iLc_corr(7) = z(7)*F*km(6)*Cm(26)+eps;
-        iLc_corr(9) = z(9)*F*km(7)*Cm(27)+eps;
+        iLc_corr(5) = z(5)*F*km_lch(5)*Cm(25)+eps;
+        iLc_corr(7) = z(7)*F*km_lch(6)*Cm(26)+eps;
+        iLc_corr(9) = z(9)*F*km_lch(7)*Cm(27)+eps;
     else
-        iLc_corr(5) = z(5)*F*km(5)*Cm(25)+eps;
-        iLc_corr(7) = z(7)*F*km(6)*Cm(26)+eps;
-        iLc_corr(9) = z(9)*F*km(7)*Cm(27)+eps;
-        iLa_corr(5) = z(5)*F*km(9)*Cm(29)/2+eps;
-        iLa_corr(7) = z(7)*F*km(9)*Cm(29)/2+eps;
-        iLa_corr(9) = z(9)*F*km(9)*Cm(29)/4+eps;
+        iLc_corr(5) = z(5)*F*km_lch(5)*Cm(25)+eps;
+        iLc_corr(7) = z(7)*F*km_lch(6)*Cm(26)+eps;
+        iLc_corr(9) = z(9)*F*km_lch(7)*Cm(27)+eps;
+        iLa_corr(5) = z(5)*F*km_lch(9)*Cm(29)/2+eps;
+        iLa_corr(7) = z(7)*F*km_lch(9)*Cm(29)/2+eps;
+        iLa_corr(9) = z(9)*F*km_lch(9)*Cm(29)/4+eps;
     end
+    %Convert units to A/cm^2 from A*m/dm^3
+    iLc_corr = iLc_corr*0.1;
+    iLa_corr = iLa_corr*0.1;
     
     %solve extraction lch corrosion rate
     on_PCB_cathode = [1 1 1 1 1 0 1 1 1 1 1];
@@ -291,7 +306,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     dt(36) = -mw(6)*(I_corr(7)/F/z(7)+I_corr(8)/F/z(8))/1000; %Au(s)
     dt(37) = -mw(7)*I_corr(9)/F/z(9)/1000; %Pd(s)
     
-    %Recovered metals on each cathode
+    %Recovered metals on each cathode side
     dt(38) = -mw(2)*I_cat(1)/F/z(1)/1000; %Cu(s)
     dt(39) = -mw(3)*I_cat(2)/F/z(2)/1000; %Sn(s)
     dt(40) = -mw(4)*I_cat(4)/F/z(4)/1000; %Fe(s)

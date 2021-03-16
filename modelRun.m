@@ -2,11 +2,10 @@ clear all
 %% Base metal system parameters
 solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
 propertiesMetals;
-
 paramSetBase = struct;
 paramSetBase.temp = 298; %K
 paramSetBase.pres = 1; % atm
-paramSetBase.Q = 0.00653/60;%; % L/s (flowrate)
+paramSetBase.Q = 0.0653/60;%; % L/s (flowrate)
 %cell dimension information
 paramSetBase.length = 0.06; % m length of electrodes in flow direction x
 paramSetBase.height = 0.06; % m height of electrodes
@@ -28,7 +27,7 @@ paramSetBase.A_cell = 36; %cm^2
 paramSetBase.vol_lch = 2.54^2*pi/4*10/1000; %L
 paramSetBase.vol_cell = 0.310-paramSetBase.vol_lch;
 
-paramSetBase.mode = 2; %1 - potentiostat, 2 - galvanostat
+paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
 paramSetBase.V_app = 3; %V
 %Applied Current to Cell (Galvanostat)
