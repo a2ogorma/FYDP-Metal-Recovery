@@ -13,14 +13,14 @@ resultsPreprocessing.ESP.power = 31; %kW
 nonmetalSeperationEff = 0.9972; %percentage of inert material separated from the system
 metalRecoveryEff = 1; % percentage of metals recovered from ESP
 resultsPreprocessing.ESP.wtFracOut = [resultsPreprocessing.wtFracIn(1)*(1-nonmetalSeperationEff) metalRecoveryEff.*resultsPreprocessing.wtFracIn(2:7)]; %portion of original stream
-resultsPreprocessing.ESP.mainOutput = resultsPreprocessing.Throughput*resultsPreprocessing.ESP.wtFracOut;
+resultsPreprocessing.ESP.mainOutput = sum(resultsPreprocessing.Throughput*resultsPreprocessing.ESP.wtFracOut);
 resultsPreprocessing.ESP.wasteOutput = resultsPreprocessing.Throughput - resultsPreprocessing.ESP.mainOutput;
 %Drum
 resultsPreprocessing.drum.power = 0.02; %kW
 ferrousSeperationEff = 0.95;
 resultsPreprocessing.drum.wtFracOut = resultsPreprocessing.ESP.wtFracOut; %setting up for next line
 resultsPreprocessing.drum.wtFracOut(4) = resultsPreprocessing.drum.wtFracOut(4)*(1-ferrousSeperationEff);
-resultsPreprocessing.drum.mainOutput = resultsPreprocessing.Throughput*resultsPreprocessing.drum.wtFracOut;
+resultsPreprocessing.drum.mainOutput = sum(resultsPreprocessing.Throughput*resultsPreprocessing.drum.wtFracOut);
 resultsPreprocessing.drum.wasteOutput = resultsPreprocessing.ESP.mainOutput - resultsPreprocessing.drum.mainOutput;
 %final calcs
 resultsPreprocessing.productionRate = resultsPreprocessing.drum.wasteOutput/(resultsPreprocessing.CF*resultsPreprocessing.workingFactor*8760*3600); %in kg per second
