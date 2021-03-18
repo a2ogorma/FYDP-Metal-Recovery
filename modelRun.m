@@ -102,14 +102,13 @@ resultsBase = metalER(initSetBase,paramSetBase);
 %% Precious metal section (for connection)
 solution = 2; %1 is Cl- base metal, 2 is S2O3 precious metal
 propertiesMetals;
-z = numel(resultsBase.t);
 %characteristics of solid PCB input
-initSetPrecious.solidPCB.m_PCB_total = resultsBase.PCB.massTotal(z);%kg Mass of crushed PCBs
-initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(z);%m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
+initSetPrecious.solidPCB.m_PCB_total = resultsBase.PCB.massTotal(end);%kg Mass of crushed PCBs
+initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(end);%m Radius of particles. Must be 2.873 (or greater) times smaller than the radius of the cylinder.
 initSetPrecious.m_deposited = [0 0 0 0.1 0 0];
 %Weight fraction composition of PCB
 %Inert Cu Sn Al Pb Fe 
-initSetPrecious.solidPCB.wtfrac_PCB = resultsBase.PCB.wtfrac_PCB(z,:);
+initSetPrecious.solidPCB.wtfrac_PCB = resultsBase.PCB.wtfrac_PCB(end,:);
 
 %characteristics of starting solution
 initSetPrecious.solution.type = 2;%1 is Cl- base metal, 2 is S2O3 precious metal
@@ -149,16 +148,22 @@ paramSetPrecious.temp = 298; %K
 paramSetPrecious.pres = 1; % atm
 paramSetPrecious.vol_cell = 0.04; %L
 paramSetPrecious.Q = 0.001/60;%; % L/s (flowrate)
-%Electrode areas
-paramSetPrecious.S_cat = 250; %cm^2
-paramSetPrecious.S_an = 36; %cm^2
+%cell dimension information
+paramSetPrecious.length = 0.06; % m length of electrodes in flow direction x
+paramSetPrecious.height = 0.06; % m height of electrodes
+paramSetPrecious.spacing_x = 0.05; % m gap between end of electrode and vessel inlet/outlet
+paramSetPrecious.spacing_y = 0.035; %m spacing between electrodes 
+paramSetPrecious.n_units = 1; %number of anode-cathode surface pairs
+paramSetPrecious.vol_cell = (paramSetPrecious.n_units*paramSetPrecious.spacing_y*...
+    paramSetPrecious.height*paramSetPrecious.length+2*paramSetPrecious.spacing_x)/1000; %L
 %Cross sectional area of cell
 paramSetPrecious.A_cell = 36; %cm^2
 %Length b/w electrodes
 paramSetPrecious.l = 3.5; %cm
 %Extraction vessel parameters
 paramSetPrecious.vol_lch = 0.09; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
-
+paramSetPrecious.S_an = 36;
+paramSetPrecious.S_cat = 36;
 paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
 paramSetPrecious.V_app = 3; %V
@@ -167,12 +172,12 @@ paramSetPrecious.I_app = 0.05; %A
 paramSetPrecious.tfinal = 10*3600; %s
 
 %Max current density for all rxns
-paramSetPrecious.iL_default = -1; %A/cm^2
+paramSetPrecious.iL_default = 1; %A/cm^2
 %fsolve options
 paramSetPrecious.foptions = optimoptions(@fsolve, 'Display','off', ...
     'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
 
 %%
-%disp("Modelling Precious Metal Extraction and Recovery");
-%resultsPrecious = metalER(initSetPrecious,paramSetPrecious);
+disp("Modelling Precious Metal Extraction and Recovery");
+resultsPrecious = metalER(initSetPrecious,paramSetPrecious);
 %}

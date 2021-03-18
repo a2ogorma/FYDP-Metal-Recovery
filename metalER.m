@@ -257,6 +257,7 @@ function results = metalER(initSet,paramSet)
             x0 = [0.2, 0.1, -0.1];
             [x,~,exitflag_cell(j),~] = fsolve(solver, x0, foptions);
             I_calc(j) = x(1);
+            V_calc(j) = V_app;
         elseif mode == 2
             solver = @(x) cell_solver_g(x(1), x(2), x(3), I_app, r_sol, r_hardware, ...
                 Erev_cat(j,:), Erev_an(j,:), iLa_cat(j,:), iLc_cat(j,:), iLa_an(j,:), iLc_an(j,:), onCathode, ...
@@ -265,6 +266,7 @@ function results = metalER(initSet,paramSet)
             x0 = [2, 0.5, -0.5];
             [x,~,exitflag_cell(j),~] = fsolve(solver, x0, foptions);
             V_calc(j) = x(1);
+            I_calc(j) = I_app;
         end
         E_an(j) = x(2);
         E_cat(j) = x(3);
