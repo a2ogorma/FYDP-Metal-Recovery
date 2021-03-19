@@ -127,7 +127,7 @@ function results = metalER(initSet,paramSet)
     end
     [t, Cm, te, Cme, ie] = ode15s(balance_solver, tspan, Cm_i, options);
     %[t, Cm] = ode45(balance_solver, tspan, Cm_i,options);
-    t
+    t;
     disp("Post-processing")
     %Reset initial guesses
     if mode == 1
@@ -143,7 +143,7 @@ function results = metalER(initSet,paramSet)
     global F z i0 alphas lamda
     for j = 1:1:numel(t)
         CmStep = Cm(j,:);
-        
+        disp(j)
         m_PCB(j,:) = (CmStep(31:37));
         m_PCB_total(j) = sum(m_PCB(j,:));
         wtfrac_PCB(j,:) = m_PCB(j,:)/m_PCB_total(j);
@@ -154,7 +154,7 @@ function results = metalER(initSet,paramSet)
 
         %calculate particle radius in m
         r_particles(j) = (V_PCB_total(j)/(n_particles*4*pi)*3)^(1/3);
-
+ 
         %Surface area calculation for corrosion
         SSA(j) = 3/r_particles(j); %m2/m3 Specific Surface area of spheres.
         S_PCB_total(j) = V_PCB_total(j)*SSA(j); %m2 Total surface area of spheres in lch.
@@ -254,7 +254,6 @@ function results = metalER(initSet,paramSet)
                 Erev_cat(j,:), Erev_an(j,:), iLa_cat(j,:), iLc_cat(j,:), iLa_an(j,:), iLc_an(j,:), onCathode, ...
                 onAnode, S_an, S_cat_p(j,:), temp);
             %initial guesses [I_an, E_an, E_cat]
-            x0 = [0.2, 0.1, -0.1];
             [x,~,exitflag_cell(j),~] = fsolve(solver, x0, foptions);
             I_calc(j) = x(1);
             V_calc(j) = V_app;
@@ -263,11 +262,11 @@ function results = metalER(initSet,paramSet)
                 Erev_cat(j,:), Erev_an(j,:), iLa_cat(j,:), iLc_cat(j,:), iLa_an(j,:), iLc_an(j,:), onCathode, ...
                 onAnode, S_an, S_cat_p(j,:), temp);
             %initial guesses [V, E_an, E_cat]
-            x0 = [2, 0.5, -0.5];
             [x,~,exitflag_cell(j),~] = fsolve(solver, x0, foptions);
             V_calc(j) = x(1);
             I_calc(j) = I_app;
         end
+        x0 = x;
         E_an(j) = x(2);
         E_cat(j) = x(3);
         eta_cat(j,:) = E_cat(j) - Erev_cat(j,:);
