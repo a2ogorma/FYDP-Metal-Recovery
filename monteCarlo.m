@@ -1,5 +1,5 @@
-sims = 50;
-Results = struct;
+sims = 500;
+tic
 for run = 1:1:sims
     
     %Base metal setup
@@ -163,10 +163,16 @@ for run = 1:1:sims
     initSetPrecious.solution.Ci_lch = [initSetPrecious.solution.Ci_Cu2_lch initSetPrecious.solution.Ci_Sn2_lch initSetPrecious.solution.Ci_Fe2_lch ... 
         initSetPrecious.solution.Ci_Fe3_lch initSetPrecious.solution.Ci_Ag_lch initSetPrecious.solution.Ci_Au3_lch initSetPrecious.solution.Ci_Pd2_lch ...
         initSetPrecious.solution.Ci_H_lch initSetPrecious.solution.Ci_S2O3_lch initSetPrecious.solution.Ci_AuCl4_lch];
-
-    ModelResults = fullModelfunc(paramSetBase, paramSetPrecious, initSetBase, initSetPrecious);
-    Results(j) = ModelResults;
+    try
+        ModelResults = fullModelfunc(paramSetBase, paramSetPrecious, initSetBase, initSetPrecious);
+        SuccessVals(run) = 1;
+        save(strcat("./SuccessRuns/Run",datestr(clock,'mmddHHMM'),".mat"),'ModelResults')
+    catch
+        SuccessVals(run) = 0;
+        save(strcat("./FailRuns/Run",datestr(clock,'mmddHHMM'),".mat"),'paramSetBase','paramSetPrecious','initSetBase','initSetPrecious')
+    end
 end
+toc
 
 function randNo = randintF(a,b,isInteger)
     % b must always be greater than a

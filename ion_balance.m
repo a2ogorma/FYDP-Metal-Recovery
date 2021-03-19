@@ -37,7 +37,11 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     2H+ + e- <--> H2(g) (10)
     4H+ + O2(g) + 4e- <--> 2H2O(l) (11)
     %}
-    
+    if toc > 300
+        error('Taking too long')
+    else
+        %
+    end
     global F z i0 km_cell alphas lamda rho mw rho_e mu_e Dab Sc
     
     if mode == 1 %potentiostat

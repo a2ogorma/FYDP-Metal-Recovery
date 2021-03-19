@@ -57,8 +57,6 @@ initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(end);%m Radiu
 %Weight fraction composition of PCB
 %Inert Cu Sn Al Pb Fe 
 initSetPrecious.solidPCB.wtfrac_PCB = resultsBase.PCB.wtfrac_PCB(end,:);
-solution = 2; %1 is Cl- base metal, 2 is S2O3 precious metal
-propertiesMetals;
 
 %%
 disp("Modelling Precious Metal Extraction and Recovery");
