@@ -1,10 +1,15 @@
 function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ...
     vol_lch, Q, S_an, S_cat, mode, VI_app, n_particles, l, A_cell, n_units, solution, iL_default, foptions)
     direction = [];
-    isterminal = zeros(1,13);
+    isterminal = zeros(1,14);
     isterminal(12) = 0;
     isterminal(13) = 0;
-    flag = ones(1,13);
+    isterminal(14) = 1; 
+    flag = ones(1,14);
+    if imag(t) ~= 0
+        flag(14) = 0;
+        disp('Error. Timestep contains complex number');
+    end
     disp(['Checking for fsolve failure at t = ' num2str(t)]);
     global F z km_cell lamda rho rho_e mu_e Dab Sc 
     
@@ -50,7 +55,7 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     vol_an = vol_cat;
     %surface area calculation for cathode
     v_cat = Cm(38:43)./rho(2:7);
-    vfrac_cat = v_cat/sum(v_cat);
+    vfrac_cat = v_cat/(sum(v_cat)+eps);
     S_cat_p = (S_cat*vfrac_cat)';
     
     %%%Electrowinning Cell solving%%%
