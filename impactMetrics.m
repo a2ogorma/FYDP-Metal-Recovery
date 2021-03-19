@@ -5,8 +5,8 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEnvironmental.energy.ESP = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.ESP.power; %make sure in kWh
     resultsEnvironmental.energy.grinder = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.grinder.power; %make sure in kWh
     resultsEnvironmental.energy.drum = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.drum.power; %make sure in kWh
-    resultsEnvironmental.energy.EWbase = trapz(resultsBase.t,(resultsBase.electrowinning.V_calc*sum(resultsBase.electrowinning.I_an,2)))/(PF*1000*3600); %in kWh
-    resultsEnvironmental.energy.EWprecious = trapz(resultsPrecious.t,(resultsPrecious.electrowinning.V_calc*sum(resultsPrecious.electrowinning.I_an,2)))/(PF*1000*3600); %in kWh
+    resultsEnvironmental.energy.EWbase = trapz(resultsBase.t,(resultsBase.electrowinning.V_calc.*resultsBase.electrowinning.I_calc))/(PF*1000*3600); %in kWh
+    resultsEnvironmental.energy.EWprecious = trapz(resultsPrecious.t,(resultsPrecious.electrowinning.V_calc.*resultsPrecious.electrowinning.I_calc))/(PF*1000*3600); %in kWh
     resultsEnvironmental.energy.total = (resultsEnvironmental.energy.pumps + resultsEnvironmental.energy.ESP + resultsEnvironmental.energy.grinder + resultsEnvironmental.energy.drum + resultsEnvironmental.energy.EWbase + resultsEnvironmental.energy.EWprecious);
     resultsEnvironmental.metrics.energyIntensity = resultsEnvironmental.energy.total/(resultsPreprocessing.Throughput/1000); %in kWh/tonne
     %carbonIntensity

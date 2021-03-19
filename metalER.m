@@ -383,11 +383,8 @@ function results = metalER(initSet,paramSet)
     results.electrowinning.i_cat = i_cat;
     results.electrowinning.I_cell = I_cell*n_units;
     results.electrowinning.I_cell_err = I_cell_err*n_units;
-    if mode == 1
-        results.electrowinning.I_calc = I_calc;
-    else
-        results.electrowinning.V_calc = V_calc;
-    end
+    results.electrowinning.I_calc = I_calc;
+    results.electrowinning.V_calc = V_calc;
     results.electrowinning.iLa_cat = iLa_cat;
     results.electrowinning.iLc_cat = iLc_cat;
     results.electrowinning.iLa_an = iLa_an;
