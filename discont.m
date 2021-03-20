@@ -10,6 +10,11 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
         flag(14) = 0;
         disp('Error. Timestep contains complex number');
     end
+    global tic StartTime
+    TimeElapsed = clock-StartTime
+    if (TimeElapsed(end-1) > 8)|(TimeElapsed(end-2) > 1)|(TimeElapsed(end-1)<-1) 
+        error('Fuck') 
+    end
     disp(['Checking for fsolve failure at t = ' num2str(t)]);
     global F z km_cell lamda rho rho_e mu_e Dab Sc 
     

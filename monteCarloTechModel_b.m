@@ -1,10 +1,10 @@
 clear all
-sims = 500;
+sims = 5000;
 tic
 solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
 propertiesMetals;
 for run = 1:1:sims
-    
+
     %Base metal setup
     paramSetBase = struct;
     paramSetBase.temp = 298; %K
@@ -50,9 +50,11 @@ for run = 1:1:sims
     m_cat = rho(6)*V_cat; %Iron mass
 
     %% Initial concentration specifications
-    solution = 1;
+    solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
+    propertiesMetals;
     initSetBase = struct;
     %characteristics of solid PCB input
+    initSetBase.solidPCB.wtfrac_PCB = [0.0845266104991119	0.815039475438435	0.0971570235621975	0.00210776765005768	0.000701689614615871	0.000313061520367081	0.000154371715215492];
     initSetBase.solidPCB.m_PCB_total = (randintF(45,75,0)/100)*paramSetBase.vol_lch*0.6*7850*0.001; %average density of basePCB is about 7850
     initSetBase.solidPCB.r_particles = randintF(5,30,0)/1000;
     initSetBase.m_deposited = [0 0 m_cat 0 0 0]; %Cu Sn Fe
@@ -94,6 +96,12 @@ for run = 1:1:sims
     %% Precious metal
 
     %% params
+    solution = 2; %1 is Cl- base metal, 2 is S2O3 precious metal
+    propertiesMetals;
+    initSetPrecious = struct;
+    %characteristics of solid PCB input
+    initSetPrecious.solidPCB.wtfrac_PCB = [0.0845266104991119	0.815039475438435	0.0971570235621975	0.00210776765005768	0.000701689614615871	0.000313061520367081	0.000154371715215492];
+    initSetPrecious.solidPCB.r_particles = randintF(5,30,0)/1000;
     paramSetPrecious = struct;
     paramSetPrecious.temp = 298; %K
     paramSetPrecious.pres = 1; % atm
@@ -167,15 +175,15 @@ for run = 1:1:sims
         initSetPrecious.solution.Ci_Fe3_lch initSetPrecious.solution.Ci_Ag_lch initSetPrecious.solution.Ci_Au3_lch initSetPrecious.solution.Ci_Pd2_lch ...
         initSetPrecious.solution.Ci_H_lch initSetPrecious.solution.Ci_S2O3_lch initSetPrecious.solution.Ci_AuCl4_lch];
     try
-        ModelResults = fullModelfunc(paramSetBase, paramSetPrecious, initSetBase, initSetPrecious);
-        if (ModelResults.resultsBase.t(end)<(12*3600))|(ModelResults.resultsPrecious.t(end)<(12*3600))
+        resultsBase = metalER(initSetBase,paramSetBase);
+        if resultsBase.t(end)<(12*3600)
             error('Shit dont work')
         end
         SuccessVals(run) = 1;
-        save(strcat("./SuccessRuns/Run",datestr(clock,'mmddHHMM'),".mat"),'ModelResults')
+        save(strcat("./SuccessRuns/Base/Run",datestr(clock,'mmddHHMMSS'),".mat"),'resultsBase')
     catch
         SuccessVals(run) = 0;
-        save(strcat("./FailRuns/Run",datestr(clock,'mmddHHMM'),".mat"),'paramSetBase','paramSetPrecious','initSetBase','initSetPrecious')
+        save(strcat("./FailRuns/Base/Run",datestr(clock,'mmddHHMMSS'),".mat"),'paramSetBase','initSetBase')
     end
 end
 toc
