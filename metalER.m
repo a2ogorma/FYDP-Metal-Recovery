@@ -6,8 +6,10 @@ function results = metalER(initSet,paramSet)
         [Pd(S2O3)4]6-, H+, (S2O3)2-, (AuCl4)-
     Solid mass order: Inert (If applicable), Cu, Sn, Fe, Ag, Au, Pd
     %}
+    global tic
     tic
-    
+    global StartTime
+    StartTime = clock;
     %% Solving concentration/mass matrix Cm using ODE solvers
     m_deposited = initSet.m_deposited;
     %for solution, 1 is for Cl- base metal system, 2 is for S2o3- precious metal system

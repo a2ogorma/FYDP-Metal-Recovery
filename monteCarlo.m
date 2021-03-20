@@ -1,5 +1,8 @@
+clear all
 sims = 500;
 tic
+solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
+propertiesMetals;
 for run = 1:1:sims
     
     %Base metal setup
