@@ -121,12 +121,12 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     % Operating
     %Chemical costs
     %solution base
-    solutionCost = 5; %$/L obv change im sleepy. Note that this
-    ... should be all components in solution, including any additives and stuff
+    solutionCost = 0.00051816; %$/L Note that this
+    ... should be all components in solution, including any additives and stuff % refine to actual values soonish
     resultsEconomic.operating.solutionBaseCost = resultsEnvironmental.water.annualWaterBase*solutionCost;
     %solution precious
-    solutionCost = 5; %$/L obv change im sleepy. Note that this
-    ... should be all components in solution, including any additives and stuff
+    solutionCost = 0.00051816; %$/L Note that this
+    ... should be all components in solution, including any additives and stuff %refine to actual values soonish
     resultsEconomic.operating.solutionPreciousCost = resultsEnvironmental.water.annualWaterPrecious*solutionCost;
     %sodium hydroxide addition for pH balancing?
     
@@ -143,7 +143,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.operating.energyCost =  resultsEnvironmental.energy.total*ElecCost;
     
     %Waste disposal
-    wastewaterDisposal = 1.3;%dummy val, $/L
+    wastewaterDisposal = 0.00005;%dummy val, $/L
     resultsEconomic.operating.wastewaterDisposal = wastewaterDisposal*(resultsEnvironmental.water.annualWaterPrecious+resultsEnvironmental.water.annualWaterBase);
     %Other direct expenses
     mainrepair = 0.04; %2-10% of fixed capital for maintenance and repair
