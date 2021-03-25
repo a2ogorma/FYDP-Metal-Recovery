@@ -1,21 +1,22 @@
 function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ...
     vol_lch, Q, S_an, S_cat, mode, VI_app, n_particles, l, A_cell, n_units, solution, iL_default, foptions)
     direction = [];
-    isterminal = zeros(1,14);
+    isterminal = zeros(1,15);
     isterminal(12) = 0;
     isterminal(13) = 0;
     isterminal(14) = 1; 
-    flag = ones(1,14);
+    isterminal(15) = 1;
+    flag = ones(1,15);
+    disp(['Checking for failure at t = ' num2str(t)]);
     if imag(t) ~= 0
         flag(14) = 0;
         disp('Error. Timestep contains complex number');
     end
-    global tic StartTime
-    TimeElapsed = clock-StartTime
-    if (TimeElapsed(end-1) > 8)|(TimeElapsed(end-2) > 1)|(TimeElapsed(end-1)<-1) 
-        error('Fuck') 
+    TimeElapsed = toc;
+    if (toc>3*60)
+        flag(15) = 0; 
+        disp('ODE solver took too long.'); 
     end
-    disp(['Checking for fsolve failure at t = ' num2str(t)]);
     global F z km_cell lamda rho rho_e mu_e Dab Sc 
     
     if mode == 1 %potentiostat
@@ -52,7 +53,7 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
         Cm(18)*lamda(8)+Cm(19)*lamda(9)+Cm(20)*lamda(10));
     kappa_avg = mean([kappa_an kappa_cat]);
     r_sol = l/A_cell/kappa_avg*100;
-    r_hardware = 10; %ohms
+    r_hardware = 0; %ohms
     
     %cell volume division
     vol_unit = vol_cell/n_units;

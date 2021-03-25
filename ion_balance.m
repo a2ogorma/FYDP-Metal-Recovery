@@ -73,7 +73,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
         Cm(18)*lamda(8)+Cm(19)*lamda(9)+Cm(20)*lamda(10));
     kappa_avg = mean([kappa_an kappa_cat]);
     r_sol = l/A_cell/kappa_avg*100;
-    r_hardware = 10; %ohms
+    r_hardware = 0; %ohms
     
     %cell volume division
     vol_unit = vol_cell/n_units;

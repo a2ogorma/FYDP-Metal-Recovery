@@ -6,10 +6,7 @@ function results = metalER(initSet,paramSet)
         [Pd(S2O3)4]6-, H+, (S2O3)2-, (AuCl4)-
     Solid mass order: Inert (If applicable), Cu, Sn, Fe, Ag, Au, Pd
     %}
-    global tic
     tic
-    global StartTime
-    StartTime = clock;
     %% Solving concentration/mass matrix Cm using ODE solvers
     m_deposited = initSet.m_deposited;
     %for solution, 1 is for Cl- base metal system, 2 is for S2o3- precious metal system
@@ -63,7 +60,7 @@ function results = metalER(initSet,paramSet)
     packing_density = 0.6; %m3/m3 Loose packing density of equal sized spheres. Close packing density = 0.64.
     fill_pct = 100*sum(V_PCB_i)/(0.001*packing_density*vol_lch);
     if fill_pct > 75
-        txt = ['Warning: PCB mass is ', num2str(fill_pct), '% of total lching vessel volume'];
+        txt = ['Warning: PCB volume is ', num2str(fill_pct), '% of total lching vessel volume'];
         disp(txt);
     end
     %Surface area calculation for corrosion
@@ -97,7 +94,7 @@ function results = metalER(initSet,paramSet)
         %V, E_an, E_cat
         x0 = [1, 0.3, -0.3];
     end
-    E_corr0 = 0.1; %initial guess for corrosion potential
+    E_corr0 = -0.5; %initial guess for corrosion potential
     
     %initializing solution concentration and solid mass vector
     Cm_i = [initSet.solution.Ci_cell initSet.solution.Ci_cell initSet.solution.Ci_lch m_PCB_i m_deposited];
@@ -134,7 +131,7 @@ function results = metalER(initSet,paramSet)
     %Reset initial guesses
     if mode == 1
         %I, E_an, E_cat
-        x0 = [0.5, 0.1, -0.1];
+        x0 = [100, 0.5, -0.4];
     else
         %V, E_an, E_cat
         x0 = [1, 0.3, -0.3];
@@ -172,8 +169,8 @@ function results = metalER(initSet,paramSet)
             CmStep(14)*lamda(4)+CmStep(15)*lamda(5)+CmStep(16)*lamda(6)+CmStep(17)*lamda(7)+...
             CmStep(18)*lamda(8)+CmStep(19)*lamda(9)+CmStep(20)*lamda(10));
         kappa_avg = mean([kappa_an kappa_cat]);
-        r_sol = d/A_cell/kappa_avg*100; %ohms
-        r_hardware = 10; %ohms
+        r_sol(j) = d/A_cell/kappa_avg*100; %ohms
+        r_hardware = 0; %ohms
         
         %cell volume division
         vol_unit = vol_cell/n_units;
@@ -252,7 +249,7 @@ function results = metalER(initSet,paramSet)
         onCathode = [1 1 1 1 1 0 1 1 1 1 1];
         onAnode = [0 0 1 0 0 0 0 0 0 0 1];
         if mode == 1
-            solver = @(x) cell_solver_p(x(1), x(2), x(3), V_app, r_sol, r_hardware, ...
+            solver = @(x) cell_solver_p(x(1), x(2), x(3), V_app, r_sol(j), r_hardware, ...
                 Erev_cat(j,:), Erev_an(j,:), iLa_cat(j,:), iLc_cat(j,:), iLa_an(j,:), iLc_an(j,:), onCathode, ...
                 onAnode, S_an, S_cat_p(j,:), temp);
             %initial guesses [I_an, E_an, E_cat]
@@ -260,7 +257,7 @@ function results = metalER(initSet,paramSet)
             I_calc(j) = x(1);
             V_calc(j) = V_app;
         elseif mode == 2
-            solver = @(x) cell_solver_g(x(1), x(2), x(3), I_app, r_sol, r_hardware, ...
+            solver = @(x) cell_solver_g(x(1), x(2), x(3), I_app, r_sol(j), r_hardware, ...
                 Erev_cat(j,:), Erev_an(j,:), iLa_cat(j,:), iLc_cat(j,:), iLa_an(j,:), iLc_an(j,:), onCathode, ...
                 onAnode, S_an, S_cat_p(j,:), temp);
             %initial guesses [V, E_an, E_cat]

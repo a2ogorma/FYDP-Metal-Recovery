@@ -154,7 +154,7 @@ global mu_e rho_e
 mu_e = 0.000969; %Pa*s https://pubs.acs.org/doi/pdf/10.1021/je00025a008
 rho_e = 1008; %kg/m^3, https://www.handymath.com/cgi-bin/hcltble3.cgi?submit=Entry
 
-%Ionic Diffusivities (See properties spreadsheet) 
+%Ionic Diffusivities m^2/s (See properties spreadsheet) 
 global Dab
 Dab_1 = 4.43E-09; %Cu2+
 Dab_2 = 4.43E-09; %Sn2+
