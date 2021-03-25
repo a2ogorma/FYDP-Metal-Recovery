@@ -68,7 +68,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.baseStage.electrowinning.Fbm = 2.8547;
     resultsEconomic.baseStage.electrowinning.capcost = resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
     %electrodes
-    A_cell = resultsBase.init.paramSet.A_cell; %m2, verify this works
+    A_cell = resultsBase.init.paramSet.A_cell/10000; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
     matDensityCathode = 11343;%kg/m3, lead
     matCostCathode = 1.61;%$/kg, lead
@@ -102,7 +102,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.preciousStage.electrowinning.Fbm = 2.8547;
     resultsEconomic.preciousStage.electrowinning.capcost = resultsPrecious.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
     %electrodes
-    A_cell = resultsPrecious.init.paramSet.A_cell; %m2, verify this works
+    A_cell = resultsPrecious.init.paramSet.A_cell/10000; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
     matDensityCathode = 11343;%kg/m3, lead
     matCostCathode = 1.61;%$/kg, lead
@@ -142,7 +142,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     
     %Labour costs
     labourCost = 20; %$/hr - suggestion from 480
-    labourDensity = 3;%people working while plant operating
+    labourDensity = 1;%people working while plant operating
     labourHours = 8760*resultsPreprocessing.CF*labourDensity; %Assumed 3 people working per working hours rn
     resultsEconomic.operating.labourCost = labourHours*labourCost;
     resultsEconomic.operating.supervisorCost = 0.15*resultsEconomic.operating.labourCost; %10-30% supervisory and clerical according to 480
