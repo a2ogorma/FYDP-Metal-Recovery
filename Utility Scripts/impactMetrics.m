@@ -7,7 +7,8 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEnvironmental.energy.drum = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.drum.power; %make sure in kWh
     resultsEnvironmental.energy.EWbase = trapz(resultsBase.t,(resultsBase.electrowinning.V_calc.*resultsBase.electrowinning.I_calc))/(PF*1000*3600); %in kWh
     resultsEnvironmental.energy.EWprecious = trapz(resultsPrecious.t,(resultsPrecious.electrowinning.V_calc.*resultsPrecious.electrowinning.I_calc))/(PF*1000*3600); %in kWh
-    resultsEnvironmental.energy.total = (resultsEnvironmental.energy.pumps + resultsEnvironmental.energy.ESP + resultsEnvironmental.energy.grinder + resultsEnvironmental.energy.drum + resultsEnvironmental.energy.EWbase + resultsEnvironmental.energy.EWprecious);
+    resultsEnvironmental.energy.agitators = 8760*resultsPreprocessing.CF*0.1*2; %0.1 kW for agitators, with 1 per stage
+    resultsEnvironmental.energy.total = (resultsEnvironmental.energy.pumps + resultsEnvironmental.energy.ESP + resultsEnvironmental.energy.grinder + resultsEnvironmental.energy.drum + resultsEnvironmental.energy.EWbase + resultsEnvironmental.energy.EWprecious + resultsEnvironmental.energy.agitators);
     resultsEnvironmental.metrics.energyIntensity = resultsEnvironmental.energy.total/(resultsPreprocessing.Throughput/1000); %in kWh/tonne
     %carbonIntensity
     carbonIntensityGrid = 30; %g CO2 eq/kWh from NIR (mentioned in report)
@@ -76,8 +77,12 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
     resultsEconomic.baseStage.anodeCost = resultsBase.numberUnits*(((resultsBase.init.paramSet.n_units/2)+1)/(resultsBase.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    %agitator
+    resultsEconomic.baseStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
+    resultsEconomic.baseStage.agitator.Fbm = 1.3;
+    resultsEconomic.baseStage.agitator.capcost = resultsBase.numberUnits*CEPCI*CADUSconv*resultsEconomic.baseStage.agitator.Cp*resultsEconomic.baseStage.agitator.Fbm;
     %basecapcosttotal
-    resultsEconomic.baseStage.capcost = resultsEconomic.baseStage.pump.capcost + resultsEconomic.baseStage.drive.capcost + resultsEconomic.baseStage.leaching.capcost + resultsEconomic.baseStage.electrowinning.capcost + resultsEconomic.baseStage.cathodeCost + resultsEconomic.baseStage.anodeCost;
+    resultsEconomic.baseStage.capcost = resultsEconomic.baseStage.pump.capcost + resultsEconomic.baseStage.drive.capcost + resultsEconomic.baseStage.leaching.capcost + resultsEconomic.baseStage.electrowinning.capcost + resultsEconomic.baseStage.cathodeCost + resultsEconomic.baseStage.anodeCost + resultsEconomic.baseStage.agitator.capcost;
     
     % Precious Metal stage
     %pumpPrecious
@@ -106,8 +111,12 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
     resultsEconomic.preciousStage.anodecost = resultsPrecious.numberUnits*(((resultsPrecious.init.paramSet.n_units/2)+1)/(resultsPrecious.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    %agitator
+    resultsEconomic.preciousStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
+    resultsEconomic.preciousStage.agitator.Fbm = 1.3;
+    resultsEconomic.preciousStage.agitator.capcost = resultsPrecious.numberUnits*CEPCI*CADUSconv*resultsEconomic.preciousStage.agitator.Cp*resultsEconomic.preciousStage.agitator.Fbm;
     %preciouscapcosttotal
-    resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost;
+    resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost + resultsEconomic.preciousStage.agitator.capcost;
     
     %%%%%ADD rectifier costs maybe?
     %totalcapcost
