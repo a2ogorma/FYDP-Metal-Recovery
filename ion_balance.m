@@ -193,7 +193,11 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     iLc_corr(10) = z(10)*F*km_lch(8)*Cm(18)+eps;
     iLc_corr(11) = z(11)*F*km_lch(8)*Cm(18)+eps;
     
-    iLa_corr = iL_default*ones(1,11);
+    if t<1
+        iLa_corr = 0.01*ones(1,11);
+    else
+        iLa_corr = iL_default*ones(1,11);
+    end
     iLa_corr(3) = z(3)*F*km_lch(3)*Cm(23)+eps;
     
     if solution == 1

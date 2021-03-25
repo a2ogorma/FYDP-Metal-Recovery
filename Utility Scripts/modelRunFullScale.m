@@ -12,7 +12,7 @@ initSetBase.solidPCB.m_PCB_total = 100000/(8760*0.91)*tfinal/3600;
 global rho
 V_PCB_total = sum(initSetBase.solidPCB.m_PCB_total.*initSetBase.solidPCB.wtfrac_PCB./rho)*1000;%L
 %Particle radius, m
-initSetBase.solidPCB.r_particles = 5/1000; 
+initSetBase.solidPCB.r_particles = 1/1000; 
 
 %characteristics of starting solution
 initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious metal
@@ -21,7 +21,7 @@ initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious me
 initSetBase.solution.Ci_Cu2_cell = 0.0001;
 initSetBase.solution.Ci_Sn2_cell = 0.0001;
 initSetBase.solution.Ci_Fe2_cell = 0.001;
-initSetBase.solution.Ci_Fe3_cell = 0.6;
+initSetBase.solution.Ci_Fe3_cell = 1;
 initSetBase.solution.Ci_Ag_cell = 0.00;
 initSetBase.solution.Ci_Au3_cell = 0.0;
 initSetBase.solution.Ci_Pd2_cell = 0.0;
@@ -51,7 +51,7 @@ initSetBase.solution.Ci_lch = [initSetBase.solution.Ci_Cu2_lch initSetBase.solut
 paramSetBase = struct;
 paramSetBase.temp = 298; %K
 paramSetBase.pres = 1; % atm
-paramSetBase.Q = 2;% L/s (flowrate)
+paramSetBase.Q = 4;% L/s (flowrate)
 %cell dimension information
 paramSetBase.length = 6; % m length of electrodes in flow direction x
 paramSetBase.height = 1; % m height of electrodes    paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
@@ -79,7 +79,7 @@ paramSetBase.I_app = 36*0.01414; %A
 paramSetBase.tfinal = tfinal; %s
 
 %Max current density for all rxns
-paramSetBase.iL_default = 1; %A/cm^2
+paramSetBase.iL_default = 1; %A*m/dm^3
 %fsolve options
 paramSetBase.foptions = optimoptions(@fsolve, 'Display','off', ...
     'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);

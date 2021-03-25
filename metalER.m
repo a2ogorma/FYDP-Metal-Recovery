@@ -83,7 +83,7 @@ function results = metalER(initSet,paramSet)
         Sh_cell = 0.0365*Re_cell^0.8.*Sc.^(1/3);
     end
     km_cell = Sh_cell.*Dab/len; %m/s 
-    LD_lch = 1; %L/D ratio of the leaching bed
+    LD_lch = 4; %L/D ratio of the leaching bed
     D_lch = (vol_lch/1000*4/pi/LD_lch)^(1/3); %diameter in m
     A_lch = pi*D_lch^2/4; %cross sectional area in m^2
     u_lch = Q/1000/A_lch; %superficial velocity, m/s
@@ -298,7 +298,12 @@ function results = metalER(initSet,paramSet)
         iLc_corr(j,10) = z(10)*F*km_lch(8)*CmStep(18)+eps;
         iLc_corr(j,11) = z(11)*F*km_lch(8)*CmStep(18)+eps;
 
-        iLa_corr(j,:) = iL_default*ones(1,11);
+        if t<1
+            iLa_corr(j,:) = 0.01*ones(1,11);
+        else
+            iLa_corr(j,:) = iL_default*ones(1,11);
+        end
+        
         iLa_corr(j,3) = z(3)*F*km_lch(3)*CmStep(23)+eps;
 
         if solution == 1
