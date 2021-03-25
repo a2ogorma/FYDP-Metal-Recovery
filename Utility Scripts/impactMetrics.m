@@ -68,7 +68,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.baseStage.electrowinning.Fbm = 2.8547;
     resultsEconomic.baseStage.electrowinning.capcost = resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
     %electrodes
-    A_cell = resultsBase.init.paramSet.A_cell; %m2, verify this works
+    A_cell = resultsBase.init.paramSet.A_cell/10000; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
     matDensityCathode = 11343;%kg/m3, lead
     matCostCathode = 1.61;%$/kg, lead
@@ -80,7 +80,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %agitator
     resultsEconomic.baseStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
     resultsEconomic.baseStage.agitator.Fbm = 1.3;
-    resultsEconomic.baseStage.agitator.capcost = resultsBase.numberUnits*CEPCI*CADUSconv*resultsEconomic.baseStage.agitator.Cp*resultsEconomic.baseStage.agitator.Fbm;
+    resultsEconomic.baseStage.agitator.capcost = resultsBase.numberUnits*CEPCI*CADUSDconv*resultsEconomic.baseStage.agitator.Cp*resultsEconomic.baseStage.agitator.Fbm;
     %basecapcosttotal
     resultsEconomic.baseStage.capcost = resultsEconomic.baseStage.pump.capcost + resultsEconomic.baseStage.drive.capcost + resultsEconomic.baseStage.leaching.capcost + resultsEconomic.baseStage.electrowinning.capcost + resultsEconomic.baseStage.cathodeCost + resultsEconomic.baseStage.anodeCost + resultsEconomic.baseStage.agitator.capcost;
     
@@ -102,7 +102,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.preciousStage.electrowinning.Fbm = 2.8547;
     resultsEconomic.preciousStage.electrowinning.capcost = resultsPrecious.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
     %electrodes
-    A_cell = resultsPrecious.init.paramSet.A_cell; %m2, verify this works
+    A_cell = resultsPrecious.init.paramSet.A_cell/10000; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
     matDensityCathode = 11343;%kg/m3, lead
     matCostCathode = 1.61;%$/kg, lead
@@ -114,7 +114,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %agitator
     resultsEconomic.preciousStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
     resultsEconomic.preciousStage.agitator.Fbm = 1.3;
-    resultsEconomic.preciousStage.agitator.capcost = resultsPrecious.numberUnits*CEPCI*CADUSconv*resultsEconomic.preciousStage.agitator.Cp*resultsEconomic.preciousStage.agitator.Fbm;
+    resultsEconomic.preciousStage.agitator.capcost = resultsPrecious.numberUnits*CEPCI*CADUSDconv*resultsEconomic.preciousStage.agitator.Cp*resultsEconomic.preciousStage.agitator.Fbm;
     %preciouscapcosttotal
     resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost + resultsEconomic.preciousStage.agitator.capcost;
     
@@ -142,7 +142,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     
     %Labour costs
     labourCost = 20; %$/hr - suggestion from 480
-    labourDensity = 3;%people working while plant operating
+    labourDensity = 1;%people working while plant operating
     labourHours = 8760*resultsPreprocessing.CF*labourDensity; %Assumed 3 people working per working hours rn
     resultsEconomic.operating.labourCost = labourHours*labourCost;
     resultsEconomic.operating.supervisorCost = 0.15*resultsEconomic.operating.labourCost; %10-30% supervisory and clerical according to 480
