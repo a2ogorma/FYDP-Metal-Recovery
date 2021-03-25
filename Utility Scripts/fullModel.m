@@ -1,33 +1,37 @@
 clear all
-resultsPreprocessing.wtFracIn = [0.783 0.151 1.80E-2 0.781E-2 0.0130E-2 0.00580E-2 0.00286E-2]; %Inert Cu Sn Fe Ag Au Pd
-resultsPreprocessing.Throughput = 100000; %kg
+%% Preprocessing %%
+resultsPreprocessing.wtFracIn = [0.753622 0.1936 0.0231 0.0294 167E-6 74.33E-6 36.67E-6]; %Inert Cu Sn Fe Ag Au Pd
+resultsPreprocessing.Throughput = 200000; %kg/yr
 resultsPreprocessing.CF = 0.91; %capacity factor, operation hours per year
 resultsPreprocessing.workingFactor = 0.25; %percentage of annual hours the preprocessing system works
 resultsPreprocessing.massFlowrate = resultsPreprocessing.Throughput/(resultsPreprocessing.CF*resultsPreprocessing.workingFactor*8760*3600); %kg/s
 %grinder
-resultsPreprocessing.d_particles = 0.001; %m, size coming out of grinder
-resultsPreprocessing.grinder.power = 0.008*resultsPreprocessing.massFlowrate/resultsPreprocessing.d_particles;
-loss = 0.001; %amount of material lost
-resultsPreprocessing.grinder.output = (1-loss)*resultsPreprocessing.massFlowrate;
+resultsPreprocessing.d_particles = 0.002; %m, size coming out of grinder
+resultsPreprocessing.grinder.power = 0.008*resultsPreprocessing.massFlowrate/resultsPreprocessing.d_particles;%kW
+loss = 0.001; %fraction of material lost
+resultsPreprocessing.grinder.output = (1-loss)*resultsPreprocessing.Throughput; %kg/yr
+g_out = resultsPreprocessing.grinder.output*resultsPreprocessing.wtFracIn; %kg/yr, partial throughputs
 %ESP
 resultsPreprocessing.ESP.power = 31; %kW
-nonmetalSeperationEff = 0.98; %percentage of inert material separated from the system
+nonmetalSeparationEff = 0.98; %fraction of inert material separated from the system
 metalRecoveryEff = 1; % percentage of metals recovered from ESP
-resultsPreprocessing.ESP.wtFracOut = [resultsPreprocessing.wtFracIn(1)*(1-nonmetalSeperationEff) metalRecoveryEff.*resultsPreprocessing.wtFracIn(2:7)]; %portion of original stream
-resultsPreprocessing.ESP.mainOutput = sum(resultsPreprocessing.Throughput*resultsPreprocessing.ESP.wtFracOut);
-resultsPreprocessing.ESP.wasteOutput = resultsPreprocessing.Throughput - resultsPreprocessing.ESP.mainOutput;
+ESP_out = g_out.*[(1-nonmetalSeparationEff) 1 1 1 1 1 1]; %kg/yr, partial throughputs
+resultsPreprocessing.ESP.wtFracOut = ESP_out/sum(ESP_out); %weight fraction.
+resultsPreprocessing.ESP.mainOutput = sum(ESP_out); %kg/yr
+resultsPreprocessing.ESP.wasteOutput = resultsPreprocessing.grinder.output - resultsPreprocessing.ESP.mainOutput; %kg/yr (non-metals)
 %Drum
 resultsPreprocessing.drum.power = 0.02; %kW
-ferrousSeperationEff = 0.95;
-resultsPreprocessing.drum.wtFracOut = resultsPreprocessing.ESP.wtFracOut; %setting up for next line
-resultsPreprocessing.drum.wtFracOut(4) = resultsPreprocessing.drum.wtFracOut(4)*(1-ferrousSeperationEff);
-resultsPreprocessing.drum.mainOutput = sum(resultsPreprocessing.Throughput*resultsPreprocessing.drum.wtFracOut);
-resultsPreprocessing.drum.wasteOutput = resultsPreprocessing.ESP.mainOutput - resultsPreprocessing.drum.mainOutput;
+ferrousSeparationEff = 0.95;
+drum_out = ESP_out; %kg/yr, partial throughputs
+drum_out(4) = ESP_out(4)*(1-ferrousSeparationEff); %kg/yr, partial throughputs
+resultsPreprocessing.drum.wtFracOut = drum_out/sum(drum_out); %weight frac out of drum
+resultsPreprocessing.drum.mainOutput = sum(drum_out);%kg/yr
+resultsPreprocessing.drum.ferroOutput = resultsPreprocessing.ESP.mainOutput - resultsPreprocessing.drum.mainOutput; %kg/yr
 %final calcs
-resultsPreprocessing.productionRate = resultsPreprocessing.drum.wasteOutput/(resultsPreprocessing.CF*resultsPreprocessing.workingFactor*8760*3600); %in kg per second
-resultsPreprocessing.wtFracOut = resultsPreprocessing.drum.wtFracOut/sum(resultsPreprocessing.drum.wtFracOut);
+resultsPreprocessing.productionRate = resultsPreprocessing.drum.mainOutput; %kg/yr
+resultsPreprocessing.wtFracOut = resultsPreprocessing.drum.wtFracOut;
 ModelResults.resultsPreprocessing = resultsPreprocessing;
-%% Base metals %%
+%% Base Metal Recovery %%
 for j = 1:1:1
 %% Base metal system parameters
 solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
