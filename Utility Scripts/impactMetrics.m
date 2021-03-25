@@ -80,7 +80,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %agitator
     resultsEconomic.baseStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
     resultsEconomic.baseStage.agitator.Fbm = 1.3;
-    resultsEconomic.baseStage.agitator.capcost = resultsBase.numberUnits*CEPCI*CADUSconv*resultsEconomic.baseStage.agitator.Cp*resultsEconomic.baseStage.agitator.Fbm;
+    resultsEconomic.baseStage.agitator.capcost = resultsBase.numberUnits*CEPCI*CADUSDconv*resultsEconomic.baseStage.agitator.Cp*resultsEconomic.baseStage.agitator.Fbm;
     %basecapcosttotal
     resultsEconomic.baseStage.capcost = resultsEconomic.baseStage.pump.capcost + resultsEconomic.baseStage.drive.capcost + resultsEconomic.baseStage.leaching.capcost + resultsEconomic.baseStage.electrowinning.capcost + resultsEconomic.baseStage.cathodeCost + resultsEconomic.baseStage.anodeCost + resultsEconomic.baseStage.agitator.capcost;
     
@@ -114,7 +114,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %agitator
     resultsEconomic.preciousStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
     resultsEconomic.preciousStage.agitator.Fbm = 1.3;
-    resultsEconomic.preciousStage.agitator.capcost = resultsPrecious.numberUnits*CEPCI*CADUSconv*resultsEconomic.preciousStage.agitator.Cp*resultsEconomic.preciousStage.agitator.Fbm;
+    resultsEconomic.preciousStage.agitator.capcost = resultsPrecious.numberUnits*CEPCI*CADUSDconv*resultsEconomic.preciousStage.agitator.Cp*resultsEconomic.preciousStage.agitator.Fbm;
     %preciouscapcosttotal
     resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost + resultsEconomic.preciousStage.agitator.capcost;
     
