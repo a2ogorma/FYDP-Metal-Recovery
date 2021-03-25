@@ -182,11 +182,7 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     I_cell = I_unit*n_units;
     
     %%%Leaching Unit solving%%%
-    u_lch = 0.5; %m/s assumed in stirred tank
-    Re_lch = rho_e*u_lch*r_particles*2/mu_e;
-    Pe_lch = Re_lch.*Sc;
-    Sh_lch = (4+1.21*Pe_lch.^(2/3)).^0.5;
-    km_lch = Dab.*Sh_lch/r_particles/2;
+    global km_lch
     
     iLc_corr(1) = z(1)*F*km_lch(1)*Cm(21)+eps;
     iLc_corr(2) = z(2)*F*km_lch(2)*Cm(22)+eps;
@@ -197,7 +193,11 @@ function dt = ion_balance(t, Cm, temp, pres, vol_cell, vol_lch, Q, S_an, ...
     iLc_corr(10) = z(10)*F*km_lch(8)*Cm(18)+eps;
     iLc_corr(11) = z(11)*F*km_lch(8)*Cm(18)+eps;
     
-    iLa_corr = iL_default*ones(1,11);
+    if t<1
+        iLa_corr = 0.01*ones(1,11);
+    else
+        iLa_corr = iL_default*ones(1,11);
+    end
     iLa_corr(3) = z(3)*F*km_lch(3)*Cm(23)+eps;
     
     if solution == 1

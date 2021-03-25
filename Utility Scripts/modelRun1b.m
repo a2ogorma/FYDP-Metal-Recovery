@@ -53,15 +53,15 @@ propertiesMetals;
 paramSetPrecious = struct;
 paramSetPrecious.temp = 298; %K
 paramSetPrecious.pres = 1; % atm
-paramSetPrecious.Q = 1;%0.0653/60;%; % L/s (flowrate)
+paramSetPrecious.Q = 2;%0.0653/60;%; % L/s (flowrate)
 %cell dimension information
 paramSetPrecious.length = 5; % m length of electrodes in flow direction x
-paramSetPrecious.height = 4; % m height of electrodes
+paramSetPrecious.height = 2; % m height of electrodes
 paramSetPrecious.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
-paramSetPrecious.spacing_y = 0.1; %m spacing between electrodes 
-paramSetPrecious.n_units = 35; %number of anode-cathode surface pairs
+paramSetPrecious.spacing_y = 0.045; %m spacing between electrodes 
+paramSetPrecious.n_units = 5; %number of anode-cathode surface pairs
 paramSetPrecious.vol_cell = (paramSetPrecious.n_units*paramSetPrecious.spacing_y*...
-    paramSetPrecious.height*paramSetPrecious.length+2*paramSetPrecious.spacing_x)*1000; %L
+    paramSetPrecious.height*(paramSetPrecious.length+2*paramSetPrecious.spacing_x))*1000; %L
 %paramSetPrecious.vol_cell = 0.04; % L, volume of entire cell
 %Electrode areas
 %paramSetPrecious.S_cat = 36; %cm^2, area of 6 x 28 cm wire mesh
@@ -71,15 +71,17 @@ paramSetPrecious.S_an = paramSetPrecious.S_cat;
 %Cross sectional area of cell
 %paramSetPrecious.A_cell = 36; %cm^2
 paramSetPrecious.A_cell = paramSetPrecious.S_cat;
-%L (Initial) volume of bed holding the particles assuming the bed is completly full.
-paramSetPrecious.vol_lch = V_PCB_total/0.6/0.5; %L
+%L (Initial) volume of bed holding the particles assuming the bed is half
+%full
+vol_bed = (V_PCB_total/0.6/0.5);
+paramSetPrecious.vol_lch = vol_bed-V_PCB_total; %L, volume of electrolyte in bed
 
 paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)
-paramSetPrecious.V_app = 3; %V
+paramSetPrecious.V_app = 5; %V
 %Applied Current to Cell (Galvanostat)
 paramSetPrecious.I_app = 25;%36*0.01414; %A
-paramSetPrecious.tfinal = 96*3600; %s
+paramSetPrecious.tfinal = 200*3600; %s
 
 %Max current density for all rxns
 paramSetPrecious.iL_default = 1; %A/cm^2
