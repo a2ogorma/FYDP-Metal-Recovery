@@ -72,8 +72,8 @@ function results = metalER(initSet,paramSet)
     %Calculate number of crushed PCB particles
     n_particles = sum(V_PCB_i)*3/(4*pi*r_particles_i^3);
     
-    %mass transfer coefficient calculation (flat plate assumption for cell, sphere for lch bed)
-    global rho_e mu_e Dab km_cell Sc
+    %mass transfer coefficient calculation (flat plate assumption for cell, packed bed for lch bed)
+    global rho_e mu_e Dab km_cell Sc km_lch
     u_cell = Q/n_units/1000/(d/100*height); %m/s
     Re_cell = u_cell*rho_e*len/mu_e; %dimensionless
     Sc = mu_e/rho_e./Dab;
@@ -83,8 +83,14 @@ function results = metalER(initSet,paramSet)
         Sh_cell = 0.0365*Re_cell^0.8.*Sc.^(1/3);
     end
     km_cell = Sh_cell.*Dab/len; %m/s 
+    LD_lch = 1; %L/D ratio of the leaching bed
+    D_lch = (vol_lch/1000*4/pi/LD_lch)^(1/3); %diameter in m
+    A_lch = pi*D_lch^2/4; %cross sectional area in m^2
+    u_lch = Q/1000/A_lch; %superficial velocity, m/s
+    Re_lch = u_lch*rho_e*r_particles_i*2/mu_e; %Assumes radius change throughout process is negligible
+    jd = 1.17*Re_lch^(-0.415);
+    km_lch = jd*u_lch./(Sc).^(2/3); %m/s
     
-
     %global initial guess variable for electrowinning solver
     global x0 E_corr0
     if mode == 1
@@ -282,36 +288,30 @@ function results = metalER(initSet,paramSet)
         I_cell(j,:) = (I_cat(j,:)+I_an(j,:)); %overall current for rxn i in cell
         I_cell_err(j) = sum(I_cell(j,:));
         
-        u_lch = 0.5; %m/s assumed in stirred tank
-        Re_lch = rho_e*u_lch*r_particles(j)*2/mu_e;
-        Pe_lch = Re_lch.*Sc;
-        Sh_lch = (4+1.21*Pe_lch.^(2/3)).^0.5;
-        km_lch(j,:) = Dab.*Sh_lch/r_particles(j)/2;
-        
         %%%Leaching Unit solving%%%
-        iLc_corr(j,1) = z(1)*F*km_lch(j,1)*CmStep(21)+eps;
-        iLc_corr(j,2) = z(2)*F*km_lch(j,2)*CmStep(22)+eps;
-        iLc_corr(j,3) = z(3)*F*km_lch(j,4)*CmStep(24)+eps;
-        iLc_corr(j,4) = z(4)*F*km_lch(j,3)*CmStep(23)+eps;
+        iLc_corr(j,1) = z(1)*F*km_lch(1)*CmStep(21)+eps;
+        iLc_corr(j,2) = z(2)*F*km_lch(2)*CmStep(22)+eps;
+        iLc_corr(j,3) = z(3)*F*km_lch(4)*CmStep(24)+eps;
+        iLc_corr(j,4) = z(4)*F*km_lch(3)*CmStep(23)+eps;
         iLc_corr(j,6) = iL_default;
-        iLc_corr(j,8) = z(8)*F*km_lch(j,10)*CmStep(30)+eps;
-        iLc_corr(j,10) = z(10)*F*km_lch(j,8)*CmStep(18)+eps;
-        iLc_corr(j,11) = z(11)*F*km_lch(j,8)*CmStep(18)+eps;
+        iLc_corr(j,8) = z(8)*F*km_lch(10)*CmStep(30)+eps;
+        iLc_corr(j,10) = z(10)*F*km_lch(8)*CmStep(18)+eps;
+        iLc_corr(j,11) = z(11)*F*km_lch(8)*CmStep(18)+eps;
 
         iLa_corr(j,:) = iL_default*ones(1,11);
-        iLa_corr(j,3) = z(3)*F*km_lch(j,3)*CmStep(23)+eps;
+        iLa_corr(j,3) = z(3)*F*km_lch(3)*CmStep(23)+eps;
 
         if solution == 1
-            iLc_corr(j,5) = z(5)*F*km_lch(j,5)*CmStep(25)+eps;
-            iLc_corr(j,7) = z(7)*F*km_lch(j,6)*CmStep(26)+eps;
-            iLc_corr(j,9) = z(9)*F*km_lch(j,7)*CmStep(27)+eps;
+            iLc_corr(j,5) = z(5)*F*km_lch(5)*CmStep(25)+eps;
+            iLc_corr(j,7) = z(7)*F*km_lch(6)*CmStep(26)+eps;
+            iLc_corr(j,9) = z(9)*F*km_lch(7)*CmStep(27)+eps;
         else
-            iLc_corr(j,5) = z(5)*F*km_lch(j,5)*CmStep(25)+eps;
-            iLc_corr(j,7) = z(7)*F*km_lch(j,6)*CmStep(26)+eps;
-            iLc_corr(j,9) = z(9)*F*km_lch(j,7)*CmStep(27)+eps;
-            iLa_corr(j,5) = z(5)*F*km_lch(j,9)*CmStep(29)/2+eps;
-            iLa_corr(j,7) = z(7)*F*km_lch(j,9)*CmStep(29)/2+eps;
-            iLa_corr(j,9) = z(9)*F*km_lch(j,9)*CmStep(29)/4+eps;
+            iLc_corr(j,5) = z(5)*F*km_lch(5)*CmStep(25)+eps;
+            iLc_corr(j,7) = z(7)*F*km_lch(6)*CmStep(26)+eps;
+            iLc_corr(j,9) = z(9)*F*km_lch(7)*CmStep(27)+eps;
+            iLa_corr(j,5) = z(5)*F*km_lch(9)*CmStep(29)/2+eps;
+            iLa_corr(j,7) = z(7)*F*km_lch(9)*CmStep(29)/2+eps;
+            iLa_corr(j,9) = z(9)*F*km_lch(9)*CmStep(29)/4+eps;
         end
         
         %Convert units to A/cm^2 from A*m/dm^3
