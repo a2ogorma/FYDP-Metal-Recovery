@@ -7,14 +7,15 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEnvironmental.energy.drum = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.drum.power; %make sure in kWh
     resultsEnvironmental.energy.EWbase = trapz(resultsBase.t,(resultsBase.electrowinning.V_calc.*resultsBase.electrowinning.I_calc))/(PF*1000*3600); %in kWh
     resultsEnvironmental.energy.EWprecious = trapz(resultsPrecious.t,(resultsPrecious.electrowinning.V_calc.*resultsPrecious.electrowinning.I_calc))/(PF*1000*3600); %in kWh
-    resultsEnvironmental.energy.total = (resultsEnvironmental.energy.pumps + resultsEnvironmental.energy.ESP + resultsEnvironmental.energy.grinder + resultsEnvironmental.energy.drum + resultsEnvironmental.energy.EWbase + resultsEnvironmental.energy.EWprecious);
+    resultsEnvironmental.energy.agitators = 8760*resultsPreprocessing.CF*0.1*2; %0.1 kW for agitators, with 1 per stage
+    resultsEnvironmental.energy.total = (resultsEnvironmental.energy.pumps + resultsEnvironmental.energy.ESP + resultsEnvironmental.energy.grinder + resultsEnvironmental.energy.drum + resultsEnvironmental.energy.EWbase + resultsEnvironmental.energy.EWprecious + resultsEnvironmental.energy.agitators);
     resultsEnvironmental.metrics.energyIntensity = resultsEnvironmental.energy.total/(resultsPreprocessing.Throughput/1000); %in kWh/tonne
     %carbonIntensity
     carbonIntensityGrid = 30; %g CO2 eq/kWh from NIR (mentioned in report)
     resultsEnvironmental.metrics.carbonIntensity = resultsEnvironmental.metrics.energyIntensity*carbonIntensityGrid; %in gCO2e/tonne
     %waterIntensity
-    cycleWaterBase = 3; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
-    cycleWaterPrecious = 3; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
+    cycleWaterBase = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
+    cycleWaterPrecious = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
     resultsEnvironmental.water.BaseVolume = 1.05*(resultsBase.init.paramSet.vol_cell + resultsBase.init.paramSet.vol_lch)*resultsBase.numberUnits; %volume at any given time
     resultsEnvironmental.water.BaseCycles = resultsPreprocessing.CF*8760*3600/resultsBase.init.paramSet.tfinal; %total cycles the system go through per year
     resultsEnvironmental.water.PreciousVolume = 1.05*(resultsPrecious.init.paramSet.vol_cell + resultsPrecious.init.paramSet.vol_lch)*resultsPrecious.numberUnits; %volume at any given time
@@ -55,16 +56,17 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.baseStage.drive.Fbm = 1.5;
     resultsEconomic.baseStage.drive.capcost = resultsBase.numberUnits*CEPCI*CADUSDconv*resultsEconomic.baseStage.drive.Cp*resultsEconomic.baseStage.drive.Fbm;
     %vesselBase
-    x = resultsBase.init.paramSet.vol_lch;
-    A = 188.85;
-    B = 0.6677;
-    resultsEconomic.baseStage.leaching.Cp = A*x^B;
-    resultsEconomic.baseStage.leaching.Fbm = 1.235;
-    resultsEconomic.baseStage.leaching.capcost = resultsBase.numberUnits*CEPCI*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
-    x = resultsBase.init.paramSet.vol_cell;
-    resultsEconomic.baseStage.electrowinning.Cp = A*x^B;
-    resultsEconomic.baseStage.electrowinning.Fbm = 1.235;
-    resultsEconomic.baseStage.electrowinning.capcost = resultsBase.numberUnits*CEPCI*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
+    K = [3.5565 0.3776 0.0905; 3.4974 0.4485 0.1074];
+    x = resultsBase.init.paramSet.vol_lch/1000;
+    vT = 2; %1 horizontal, 2 vertical
+    resultsEconomic.baseStage.leaching.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
+    resultsEconomic.baseStage.leaching.Fbm = 2.8547;
+    resultsEconomic.baseStage.leaching.capcost = resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
+    x = resultsBase.init.paramSet.vol_cell/1000;
+    vT = 1; %1 horizontal, 2 vertical
+    resultsEconomic.baseStage.electrowinning.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
+    resultsEconomic.baseStage.electrowinning.Fbm = 2.8547;
+    resultsEconomic.baseStage.electrowinning.capcost = resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
     %electrodes
     A_cell = resultsBase.init.paramSet.A_cell; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
@@ -75,8 +77,12 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
     resultsEconomic.baseStage.anodeCost = resultsBase.numberUnits*(((resultsBase.init.paramSet.n_units/2)+1)/(resultsBase.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    %agitator
+    resultsEconomic.baseStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
+    resultsEconomic.baseStage.agitator.Fbm = 1.3;
+    resultsEconomic.baseStage.agitator.capcost = resultsBase.numberUnits*CEPCI*CADUSconv*resultsEconomic.baseStage.agitator.Cp*resultsEconomic.baseStage.agitator.Fbm;
     %basecapcosttotal
-    resultsEconomic.baseStage.capcost = resultsEconomic.baseStage.pump.capcost + resultsEconomic.baseStage.drive.capcost + resultsEconomic.baseStage.leaching.capcost + resultsEconomic.baseStage.electrowinning.capcost + resultsEconomic.baseStage.cathodeCost + resultsEconomic.baseStage.anodeCost;
+    resultsEconomic.baseStage.capcost = resultsEconomic.baseStage.pump.capcost + resultsEconomic.baseStage.drive.capcost + resultsEconomic.baseStage.leaching.capcost + resultsEconomic.baseStage.electrowinning.capcost + resultsEconomic.baseStage.cathodeCost + resultsEconomic.baseStage.anodeCost + resultsEconomic.baseStage.agitator.capcost;
     
     % Precious Metal stage
     %pumpPrecious
@@ -85,16 +91,16 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.preciousStage.drive.Fbm = 1.5;
     resultsEconomic.preciousStage.drive.capcost = resultsPrecious.numberUnits*CEPCI*CADUSDconv*resultsEconomic.preciousStage.drive.Cp*resultsEconomic.preciousStage.drive.Fbm;
     %vesselPrecious
-    x = resultsPrecious.init.paramSet.vol_lch;
-    A = 188.85;
-    B = 0.6677;
-    resultsEconomic.preciousStage.leaching.Cp = A*x^B;
-    resultsEconomic.preciousStage.leaching.Fbm = 1.235;
-    resultsEconomic.preciousStage.leaching.capcost = CEPCI*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
-    x = resultsPrecious.init.paramSet.vol_cell;
-    resultsEconomic.preciousStage.electrowinning.Cp = A*x^B;
-    resultsEconomic.preciousStage.electrowinning.Fbm = 1.235;
-    resultsEconomic.preciousStage.electrowinning.capcost = resultsPrecious.numberUnits*CEPCI*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
+    x = resultsPrecious.init.paramSet.vol_lch/1000;
+    vT = 2; %1 horizontal, 2 vertical
+    resultsEconomic.preciousStage.leaching.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
+    resultsEconomic.preciousStage.leaching.Fbm = 2.8547;
+    resultsEconomic.preciousStage.leaching.capcost = CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
+    x = resultsPrecious.init.paramSet.vol_cell/1000;
+    vT = 1; %1 horizontal, 2 vertical
+    resultsEconomic.preciousStage.electrowinning.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
+    resultsEconomic.preciousStage.electrowinning.Fbm = 2.8547;
+    resultsEconomic.preciousStage.electrowinning.capcost = resultsPrecious.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
     %electrodes
     A_cell = resultsPrecious.init.paramSet.A_cell; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
@@ -105,8 +111,12 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
     resultsEconomic.preciousStage.anodecost = resultsPrecious.numberUnits*(((resultsPrecious.init.paramSet.n_units/2)+1)/(resultsPrecious.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    %agitator
+    resultsEconomic.preciousStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
+    resultsEconomic.preciousStage.agitator.Fbm = 1.3;
+    resultsEconomic.preciousStage.agitator.capcost = resultsPrecious.numberUnits*CEPCI*CADUSconv*resultsEconomic.preciousStage.agitator.Cp*resultsEconomic.preciousStage.agitator.Fbm;
     %preciouscapcosttotal
-    resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost;
+    resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost + resultsEconomic.preciousStage.agitator.capcost;
     
     %%%%%ADD rectifier costs maybe?
     %totalcapcost
