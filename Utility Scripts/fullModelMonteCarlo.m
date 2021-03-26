@@ -1,20 +1,53 @@
 clear all
-sims = 10;
+sims = 100;
 for run = 1:1:sims
-    %% Initial condition specifications
+    %% Preprocessing %%
+    resultsPreprocessing.wtFracIn = [0.753622 0.1936 0.0231 0.0294 167E-6 74.33E-6 36.67E-6]; %Inert Cu Sn Fe Ag Au Pd
+    resultsPreprocessing.Throughput = 400000; %kg/yr, raw PCB feed
+    CF = 0.91; %capacity factor, operation hours per year
+    resultsPreprocessing.CF = CF;
+    resultsPreprocessing.workingFactor = 0.25; %percentage of annual hours the preprocessing system works
+    resultsPreprocessing.massFlowrate = resultsPreprocessing.Throughput/(resultsPreprocessing.CF*resultsPreprocessing.workingFactor*8760*3600); %kg/s
+    %grinder
+    resultsPreprocessing.d_particles = randintF(1,20,0)/1000; %m, size coming out of grinder
+    resultsPreprocessing.grinder.power = 0.008*resultsPreprocessing.massFlowrate/resultsPreprocessing.d_particles;%kW
+    loss = 0.001; %fraction of material lost
+    resultsPreprocessing.grinder.output = (1-loss)*resultsPreprocessing.Throughput; %kg/yr
+    g_out = resultsPreprocessing.grinder.output*resultsPreprocessing.wtFracIn; %kg/yr, partial throughputs
+    %ESP
+    resultsPreprocessing.ESP.power = 31; %kW
+    nonmetalSeparationEff = 0.98; %fraction of inert material separated from the system
+    metalRecoveryEff = 1; % percentage of metals recovered from ESP
+    ESP_out = g_out.*[(1-nonmetalSeparationEff) 1 1 1 1 1 1]; %kg/yr, partial throughputs
+    resultsPreprocessing.ESP.wtFracOut = ESP_out/sum(ESP_out); %weight fraction.
+    resultsPreprocessing.ESP.mainOutput = sum(ESP_out); %kg/yr
+    resultsPreprocessing.ESP.wasteOutput = resultsPreprocessing.grinder.output - resultsPreprocessing.ESP.mainOutput; %kg/yr (non-metals)
+    %Drum
+    resultsPreprocessing.drum.power = 0.02; %kW
+    ferrousSeparationEff = 0.95;
+    drum_out = ESP_out; %kg/yr, partial throughputs
+    drum_out(4) = ESP_out(4)*(1-ferrousSeparationEff); %kg/yr, partial throughputs
+    resultsPreprocessing.drum.wtFracOut = drum_out/sum(drum_out); %weight frac out of drum
+    resultsPreprocessing.drum.mainOutput = sum(drum_out);%kg/yr
+    resultsPreprocessing.drum.ferroOutput = resultsPreprocessing.ESP.mainOutput - resultsPreprocessing.drum.mainOutput; %kg/yr
+    %final calcs
+    resultsPreprocessing.productionRate = resultsPreprocessing.drum.mainOutput; %kg/yr
+    resultsPreprocessing.wtFracOut = resultsPreprocessing.drum.wtFracOut;
+    ModelResults.resultsPreprocessing = resultsPreprocessing;
+    %Base metal system parameters
     solution = 1; %1 is Cl- base metal, 2 is S2O3 precious metal
     propertiesMetals;
     initSetBase = struct;
-    %characteristics of solid PCB input
-    initSetBase.solidPCB.wtfrac_PCB = [0.0845266104991119	0.815039475438435	0.0971570235621975	0.00210776765005768	0.000701689614615871	0.000313061520367081	0.000154371715215492];
-    %assuming cycle time is 20 hrs
-    tfinal = 50*3600;
-    %Assuming 100000 kg/yr waste input
-    initSetBase.solidPCB.m_PCB_total = 100000/(8760*0.91)*tfinal/3600;
+    %characteristics of solid PCB output from preprocessing
+    initSetBase.solidPCB.wtfrac_PCB = resultsPreprocessing.wtFracOut;
+    %Cycle time for Base and Metal recovery operations
+    tfinal = 30*3600;
+    %PCB mass loaded per cycle
+    initSetBase.solidPCB.m_PCB_total = resultsPreprocessing.productionRate/(8760*CF)*tfinal/3600; %kg/yr/(hr/yr)*hr/cycle = kg/cycle
     global rho
     V_PCB_total = sum(initSetBase.solidPCB.m_PCB_total.*initSetBase.solidPCB.wtfrac_PCB./rho)*1000;%L
     %Particle radius, m
-    initSetBase.solidPCB.r_particles = randintF(1,10,0)/1000; 
+    initSetBase.solidPCB.r_particles = resultsPreprocessing.d_particles/2;  
 
     %characteristics of starting solution
     initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious metal
@@ -23,7 +56,7 @@ for run = 1:1:sims
     initSetBase.solution.Ci_Cu2_cell = 0.0001;
     initSetBase.solution.Ci_Sn2_cell = 0.0001;
     initSetBase.solution.Ci_Fe2_cell = 0.001;
-    initSetBase.solution.Ci_Fe3_cell = randintF(0.4,1,0);
+    initSetBase.solution.Ci_Fe3_cell = randintF(0.4,1.5,0);
     initSetBase.solution.Ci_Ag_cell = 0.00;
     initSetBase.solution.Ci_Au3_cell = 0.0;
     initSetBase.solution.Ci_Pd2_cell = 0.0;
@@ -93,29 +126,41 @@ for run = 1:1:sims
     V_cat = A_cat*thicc_cat; %cathode volume in m^3
     m_cat = rho(6)*V_cat; %Iron mass
     initSetBase.m_deposited = [0 0 m_cat 0 0 0]; %Cu Sn Fe
-
-    try
-        resultsBase = metalER(initSetBase,paramSetBase);
-        if resultsBase.t(end)<(tfinal-100)
-            ie = resultsBase.ie(end);
-            if ie == 14
-                error('Simulation exited early. Complex number detected in last timestep')
-            elseif ie == 15
-                error('Simulation exited early. ODE Solver took too long.')
-            else
-                error('Simulation exited early. Unknown reason.')
-            end
-        
-        end
-        disp('Base Sim Success');
-        SuccessValsBase(run) = 1;
-        save(strcat("SuccessBase\Run",datestr(clock,'mmddHHMMSS'),".mat"),'resultsBase')
-    catch exception
-        disp('Run Failed');
-        SuccessValsBase(run) = 0;
-        save(strcat("FailBase\Run",datestr(clock,'mmddHHMMSS'),".mat"),'paramSetBase','initSetBase','exception')
-    end
+    base_success = 1;
     
+    %Run extraction/recovery model
+    disp("Modelling Base Metal Extraction and Recovery");
+    resultsBase = metalER(initSetBase,paramSetBase);
+    
+    if resultsBase.t(end)<(tfinal-100)
+        if numel(resultsBase.ie) == 0
+            ie = 0;
+        else
+            ie = resultsBase.ie(end);
+        end
+        base_success = 0;
+        if ie == 14
+            disp('Simulation exited early. Complex number detected in last timestep')
+        elseif ie == 15
+            disp('Simulation exited early. ODE Solver took too long.')
+        else
+            disp('Simulation exited early. Unknown reason.')
+        end
+    end
+        
+    %Post calculations for impact metrics
+    %Practical additions here that dont affect the model
+    resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q; %flow rate in system
+    resultsBase.practical.pump.head = 3; %reasonable assumption value, m 
+    resultsBase.practical.pump.specGravity = 1;
+    resultsBase.practical.pump.shaftPower = 9.81*resultsBase.practical.pump.specGravity*resultsBase.practical.pump.flow*1000*resultsBase.practical.pump.head/1000;
+    resultsBase.practical.pump.eff = 0.5;
+    resultsBase.practical.pump.BHP = resultsBase.practical.pump.shaftPower/resultsBase.practical.pump.eff;
+    %final stuff
+    resultsBase.productionRateIn = resultsBase.init.initSet.solidPCB.m_PCB_total/resultsBase.init.paramSet.tfinal*(3600*8760*CF); %kg/s*s/yr = kg/yr
+    resultsBase.numberUnits = ceil(resultsPreprocessing.productionRate/resultsBase.productionRateIn);
+    resultsBase.productionRateOut = resultsBase.numberUnits*resultsBase.PCB.massTotal(end)/resultsBase.init.paramSet.tfinal*(3600*8760*CF); %kg/s*s/yr = kg/yr
+    ModelResults.resultsBase = resultsBase;
     %% Precious metal
 
     solution = 2; %1 is Cl- base metal, 2 is S2O3 precious metal
@@ -136,7 +181,7 @@ for run = 1:1:sims
     initSetPrecious.solution.Ci_Cu2_cell = 0.0;
     initSetPrecious.solution.Ci_Sn2_cell = 0.0;
     initSetPrecious.solution.Ci_Fe2_cell = 0.1;
-    initSetPrecious.solution.Ci_Fe3_cell = randintF(0.4,1,0);
+    initSetPrecious.solution.Ci_Fe3_cell = randintF(0.4,1.5,0);
     initSetPrecious.solution.Ci_Ag_cell = 0.0;
     initSetPrecious.solution.Ci_Au3_cell = 0.0;
     initSetPrecious.solution.Ci_Pd2_cell = 0.0;
@@ -196,34 +241,54 @@ for run = 1:1:sims
     %fsolve options
     paramSetPrecious.foptions = optimoptions(@fsolve, 'Display','off', ...
     'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
-
-    ie = 0;
-    try
-        resultsPrecious = metalER(initSetPrecious,paramSetPrecious);
-        if resultsPrecious.t(end)<(tfinal-100)
-            ie = resultsPrecious.ie(numel(resultsPrecious.ie));
-            if ie == 14
-                error('Simulation exited early. Complex number detected in last timestep')
-            elseif ie == 15
-                error('Simulation exited early. ODE Solver took too long.')
-            else
-                error('Simulation exited early. Unknown reason.')
-            end
-        
+    
+    precious_success = 1;
+    
+    resultsPrecious = metalER(initSetPrecious,paramSetPrecious);
+    if resultsPrecious.t(end)<(tfinal-100)
+        if numel(resultsPrecious.ie) == 0
+            ie = 0;
+        else
+            ie = resultsPrecious.ie(end);
         end
-        disp('Sim Success');
-        SuccessValsPrecious(run) = 1;
-        save(strcat("SuccessPrecious\Run",datestr(clock,'mmddHHMMSS'),".mat"),'resultsPrecious')
-    catch exception
-        disp('Run Failed');
-        SuccessValsPrecious(run) = 0;
-        save(strcat("FailPrecious\Run",datestr(clock,'mmddHHMMSS'),".mat"),'paramSetPrecious','initSetPrecious','exception')
+        precious_success = 0;
+        if ie == 14
+            disp('Simulation exited early. Complex number detected in last timestep')
+        elseif ie == 15
+            disp('Simulation exited early. ODE Solver took too long.')
+        else
+            disp('Simulation exited early. Unknown reason.')
+        end
+    end
+    
+    %Practical additions here that dont affect the model
+    resultsPrecious.practical.pump.flow = resultsPrecious.init.paramSet.Q; %flow rate in system
+    resultsPrecious.practical.pump.head = 3; %reasonable assumption value
+    resultsPrecious.practical.pump.specGravity = 1;
+    resultsPrecious.practical.pump.shaftPower = 9.81*resultsPrecious.practical.pump.specGravity*resultsPrecious.practical.pump.flow*1000*resultsPrecious.practical.pump.head/1000;
+    resultsPrecious.practical.pump.eff = 0.5;
+    resultsPrecious.practical.pump.BHP = resultsPrecious.practical.pump.shaftPower/resultsPrecious.practical.pump.eff;
+    %final stuff
+    resultsPrecious.productionRateIn = resultsPrecious.init.initSet.solidPCB.m_PCB_total/resultsPrecious.init.paramSet.tfinal*(3600*8760*CF); %kg/s*s/yr = kg/yr
+    resultsPrecious.numberUnits = ceil(resultsBase.productionRateOut/resultsPrecious.productionRateIn);
+    resultsPrecious.productionRateOut = resultsPrecious.numberUnits*resultsPrecious.PCB.massTotal(end)/resultsPrecious.init.paramSet.tfinal*(3600*8760*CF); %kg/s*s/yr = kg/yr
+    ModelResults.resultsPrecious = resultsPrecious;
+
+    %% Impacts %%
+    [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreprocessing, resultsBase, resultsPrecious);
+    ModelResults.resultsEnvironmental = resultsEnvironmental;
+    ModelResults.resultsEconomic = resultsEconomic;
+    
+    if base_success == 0 || precious_success == 0 %fail
+        save(strcat('FullModel\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+    else %success
+        save(strcat('FullModel\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
     end
 end
 toc
 
 function randNo = randintF(a,b,isInteger)
-    % b must always be greater than a
+    % b must always be greater than ae
     if isInteger
         randNo = randi(b-a)+a;
     else
