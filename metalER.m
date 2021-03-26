@@ -56,7 +56,7 @@ function results = metalER(initSet,paramSet)
     V_PCB_i = m_PCB_i./rho; %Element volumes in m^3
     vfrac_PCB_i = V_PCB_i/sum(V_PCB_i);
     V_PCB_total_i = sum(V_PCB_i);
-
+    
     packing_density = 0.6; %m3/m3 Loose packing density of equal sized spheres. Close packing density = 0.64.
     fill_pct = 100*sum(V_PCB_i)/(0.001*packing_density*vol_lch);
     if fill_pct > 75
@@ -84,7 +84,8 @@ function results = metalER(initSet,paramSet)
     end
     km_cell = Sh_cell.*Dab/len; %m/s 
     LD_lch = 4; %L/D ratio of the leaching bed
-    D_lch = (vol_lch/1000*4/pi/LD_lch)^(1/3); %diameter in m
+    vol_bed = vol_lch+sum(V_PCB_i);
+    D_lch = (vol_bed/1000*4/pi/LD_lch)^(1/3); %diameter in m
     A_lch = pi*D_lch^2/4; %cross sectional area in m^2
     u_lch = Q/1000/A_lch; %superficial velocity, m/s
     Re_lch = u_lch*rho_e*r_particles_i*2/mu_e; %Assumes radius change throughout process is negligible

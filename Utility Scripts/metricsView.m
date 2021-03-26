@@ -17,9 +17,14 @@ for n = 1:1:length(ModelResults)
     resultsEnvironmental(n) = ModelResults(n).resultsEnvironmental;
 end
 
-%% Plot
-scatter([paramSetBase.Q],[resultsEconomic.netAnnualbeforeTax])
-xlabel('Flowrate (L/s)')
+%% Annual Profit Plots
+subplot(2,1,1);
+scatter([paramSetBase.length],[resultsEconomic.netAnnualbeforeTax])
+xlabel('Base Metal Stage Flowrate (L/s)')
+ylabel('Net Annual Profit before tax (CA$)')
+subplot(2,1,2);
+scatter([paramSetBase.length],[resultsEconomic.netAnnualbeforeTax])
+xlabel('Precious Metal Stage Flowrate (L/s)')
 ylabel('Net Annual Profit before tax (CA$)')
 
 %% Find maximum profit simulation

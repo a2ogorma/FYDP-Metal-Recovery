@@ -12,7 +12,7 @@ Solid mass order: Inert (If applicable), Cu, Sn, Fe, Ag, Au, Pd
 %}
 %{
 Reactions
-[CuCl3]2- + 1e- <--> Cu(s) + 3Cl- (1)
+Cu2+ + 2e- <--> Cu(s) (1)
 Sn2+ + 2e- <--> Sn(s) (2)
 Fe3+ + e- <--> Fe2+ (3)
 Fe2+ + 2e- <--> Fe(s) (4)
@@ -61,6 +61,8 @@ i0 = active.*[i0_1 i0_2 i0_3 i0_4 i0_5 i0_6 i0_7 i0_8 i0_9 i0_10 i0_11];
 % charge transfer coefficients, m/s
 global alphas
 alphas = ones(1, 11)*0.5; %assume symmetric rxns 
+alphas(1) = 0.46; %Cifuentes
+alphas(3) = 0.64; %Cifuentes
 if solution == 1 %Cl-, base metal system
     alphas(5) = 0.5;
     alphas(7) = 0.5;
@@ -72,7 +74,7 @@ else %S2O3, precious metal system
 end
 % Standard half reaction potentials, V vs. SHE @ 298 K, 1 atm, 1 M conc.
     %https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)
-Eo_1 = 0.245; %turned down to account for chloride reactions occuring, which effectively speed up the rate of copper leaching
+Eo_1 = 0.337; %turned down to account for chloride reactions occuring, which effectively speed up the rate of copper leaching
 Eo_2 = -0.1375;
 Eo_3 = 0.77;
 Eo_4 = -0.44;
