@@ -16,9 +16,9 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %waterIntensity
     cycleWaterBase = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
     cycleWaterPrecious = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
-    resultsEnvironmental.water.BaseVolume = 1.05*(resultsBase.init.paramSet.vol_cell + resultsBase.init.paramSet.vol_lch)*resultsBase.numberUnits; %volume at any given time
+    resultsEnvironmental.water.BaseVolume = 1.05*(resultsBase.init.paramSet.vol_cell + resultsBase.init.paramSet.vol_bed)*resultsBase.numberUnits; %volume at any given time
     resultsEnvironmental.water.BaseCycles = resultsPreprocessing.CF*8760*3600/resultsBase.init.paramSet.tfinal; %total cycles the system go through per year
-    resultsEnvironmental.water.PreciousVolume = 1.05*(resultsPrecious.init.paramSet.vol_cell + resultsPrecious.init.paramSet.vol_lch)*resultsPrecious.numberUnits; %volume at any given time
+    resultsEnvironmental.water.PreciousVolume = 1.05*(resultsPrecious.init.paramSet.vol_cell + resultsPrecious.init.paramSet.vol_bed)*resultsPrecious.numberUnits; %volume at any given time
     resultsEnvironmental.water.PreciousCycles = resultsPreprocessing.CF*8760*3600/resultsPrecious.init.paramSet.tfinal; %total cycles the system go through per year
     resultsEnvironmental.water.annualWaterBase = resultsEnvironmental.water.BaseVolume*(resultsEnvironmental.water.BaseCycles/cycleWaterBase);
     resultsEnvironmental.water.annualWaterPrecious = resultsEnvironmental.water.PreciousVolume*(resultsEnvironmental.water.PreciousCycles/cycleWaterPrecious);
@@ -57,7 +57,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.baseStage.drive.capcost = resultsBase.numberUnits*CEPCI*CADUSDconv*resultsEconomic.baseStage.drive.Cp*resultsEconomic.baseStage.drive.Fbm;
     %vesselBase
     K = [3.5565 0.3776 0.0905; 3.4974 0.4485 0.1074];
-    x = resultsBase.init.paramSet.vol_lch/1000;
+    x = resultsBase.init.paramSet.vol_bed/1000;
     vT = 2; %1 horizontal, 2 vertical
     resultsEconomic.baseStage.leaching.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
     resultsEconomic.baseStage.leaching.Fbm = 2.8547;
@@ -91,7 +91,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.preciousStage.drive.Fbm = 1.5;
     resultsEconomic.preciousStage.drive.capcost = resultsPrecious.numberUnits*CEPCI*CADUSDconv*resultsEconomic.preciousStage.drive.Cp*resultsEconomic.preciousStage.drive.Fbm;
     %vesselPrecious
-    x = resultsPrecious.init.paramSet.vol_lch/1000;
+    x = resultsPrecious.init.paramSet.vol_bed/1000;
     vT = 2; %1 horizontal, 2 vertical
     resultsEconomic.preciousStage.leaching.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
     resultsEconomic.preciousStage.leaching.Fbm = 2.8547;

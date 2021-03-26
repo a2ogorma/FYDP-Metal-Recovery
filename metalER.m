@@ -36,6 +36,7 @@ function results = metalER(initSet,paramSet)
     I_app = paramSet.I_app; %A
     %Extraction vessel parameters
     vol_lch = paramSet.vol_lch; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
+    vol_bed = paramSet.vol_bed;
     tfinal = paramSet.tfinal; %s
     %Maximum current density default
     iL_default = paramSet.iL_default; %A/cm^2
@@ -58,7 +59,7 @@ function results = metalER(initSet,paramSet)
     V_PCB_total_i = sum(V_PCB_i);
     
     packing_density = 0.6; %m3/m3 Loose packing density of equal sized spheres. Close packing density = 0.64.
-    fill_pct = 100*sum(V_PCB_i)/(0.001*packing_density*vol_lch);
+    fill_pct = 100*sum(V_PCB_i)/(0.001*packing_density*vol_bed);
     if fill_pct > 75
         txt = ['Warning: PCB volume is ', num2str(fill_pct), '% of total lching vessel volume'];
         disp(txt);

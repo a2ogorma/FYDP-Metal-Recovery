@@ -1,5 +1,5 @@
 clear all
-sims = 100;
+sims = 2000;
 for run = 1:1:sims
     try
         %% Preprocessing %%
@@ -104,8 +104,8 @@ for run = 1:1:sims
         paramSetBase.A_cell = paramSetBase.S_cat;
         %L (Initial) volume of bed holding the particles assuming the bed is half
         %full
-        vol_bed = (V_PCB_total/0.6/randintF(0.3,0.7,0));
-        paramSetBase.vol_lch = vol_bed-V_PCB_total; %L, volume of electrolyte in bed
+        paramSetBase.vol_bed = (V_PCB_total/0.6/randintF(0.3,0.7,0));
+        paramSetBase.vol_lch = paramSetBase.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
 
         paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
         %Applied Voltage (potentiostat)
@@ -228,8 +228,8 @@ for run = 1:1:sims
         paramSetPrecious.A_cell = paramSetPrecious.S_cat;
         %L (Initial) volume of bed holding the particles assuming the bed is half
         %full
-        vol_bed = (V_PCB_total/0.6/randintF(0.3,0.7,0));
-        paramSetPrecious.vol_lch = vol_bed-V_PCB_total; %L, volume of electrolyte in bed
+        paramSetPrecious.vol_bed = (V_PCB_total/0.6/randintF(0.3,0.7,0));
+        paramSetPrecious.vol_lch = paramSetPrecious.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
 
 
         paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
@@ -289,7 +289,15 @@ for run = 1:1:sims
             save(strcat('FullModel\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
         end
     catch exception %If model throws an unhandled exception
-        save(strcat('FullModel\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
+        try
+            save(strcat('FullModel\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
+        catch
+            try
+                save(strcat('FullModel\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'initSetBase','paramSetBase','exception');
+            catch
+                disp('Bleurgh')
+            end
+        end
     end
 end
 toc
