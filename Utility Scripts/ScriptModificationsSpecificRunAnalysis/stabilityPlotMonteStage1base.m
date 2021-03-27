@@ -16,7 +16,7 @@ for k = 2:1:length(fail)
     end
 end
 %}
-%{
+
 result = open(fullfile('FullModel',success(1).name));
 bsuccess_params(1) = result.ModelResults.resultsBase.init.paramSet;
 binit_params(1) = result.ModelResults.resultsBase.init.initSet;
@@ -25,7 +25,7 @@ for j = 2:1:length(success)
     bsuccess_params(j) = result.ModelResults.resultsBase.init.paramSet;
     binit_params(j) = result.ModelResults.resultsBase.init.initSet;
 end
-%}
+
 solidPCB = [binit_params.solidPCB];
 solution = [binit_params.solution];
 r = [solidPCB.r_particles];
@@ -39,6 +39,7 @@ n_units = [bsuccess_params.n_units];
 vol_bed = [bsuccess_params.vol_bed];
 V_app = [bsuccess_params.V_app];
 nbin = 20;
+figure
 subplot(5,2,1)
 histogram(r,nbin)
 title('Radius')

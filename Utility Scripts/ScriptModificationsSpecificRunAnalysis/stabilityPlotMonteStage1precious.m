@@ -16,29 +16,31 @@ for k = 2:1:length(fail)
     end
 end
 %}
-%{
+
 result = open(fullfile('FullModel',success(1).name));
-bsuccess_params(1) = result.ModelResults.resultsBase.init.paramSet;
-binit_params(1) = result.ModelResults.resultsBase.init.initSet;
+psuccess_params(1) = result.ModelResults.resultsPrecious.init.paramSet;
+pinit_params(1) = result.ModelResults.resultsPrecious.init.initSet;
 for j = 2:1:length(success)
     result = open(fullfile('FullModel',success(j).name));
-    bsuccess_params(j) = result.ModelResults.resultsBase.init.paramSet;
-    binit_params(j) = result.ModelResults.resultsBase.init.initSet;
+    psuccess_params(j) = result.ModelResults.resultsPrecious.init.paramSet;
+    pinit_params(j) = result.ModelResults.resultsPrecious.init.initSet;
 end
-%}
-solidPCB = [binit_params.solidPCB];
-solution = [binit_params.solution];
+
+solidPCB = [pinit_params.solidPCB];
+solution = [pinit_params.solution];
 r = [solidPCB.r_particles];
 m = [solidPCB.m_PCB_total];
-Q = [bsuccess_params.Q];
+Q = [psuccess_params.Q];
 Fe = [solution.Ci_Fe3_cell];
-t = [bsuccess_params.tfinal];
-leng = [bsuccess_params.length];
-height = [bsuccess_params.height];
-n_units = [bsuccess_params.n_units];
-vol_bed = [bsuccess_params.vol_bed];
-V_app = [bsuccess_params.V_app];
+t = [psuccess_params.tfinal];
+leng = [psuccess_params.length];
+height = [psuccess_params.height];
+n_units = [psuccess_params.n_units];
+vol_bed = [psuccess_params.vol_bed];
+V_app = [psuccess_params.V_app];
 nbin = 20;
+loading = m./vol_bed;
+figure
 subplot(5,2,1)
 histogram(r,nbin)
 title('Radius')
@@ -69,4 +71,4 @@ title('Bed volume')
 subplot(5,2,10)
 histogram(V_app,nbin)
 title('Applied voltage')
-sgtitle('Base metal running values, n = 1000')
+sgtitle('Precious metal running values, n = 1000')

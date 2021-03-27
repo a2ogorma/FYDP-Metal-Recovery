@@ -1,30 +1,33 @@
+%%{
 clear all
 %% Open Files
-sim_files = dir(fullfile('FullModel', '*.mat'));
-ModelResults = open(fullfile('FullModel',sim_files(1).name)).ModelResults;
-for k = 2:1:length(sim_files)
-    ModelResults(k) = open(fullfile('FullModel',sim_files(k).name)).ModelResults;
-end
 
+sim_files = dir(fullfile('FullModel', '*.mat'));
+ModelResults = open(fullfile('FullModel',sim_files(1).name));
+for k = 2:1:length(sim_files)
+    ModelResults(k) = open(fullfile('FullModel',sim_files(k).name));
+end
+%}
 %% Extract Data
 for n = 1:1:length(ModelResults)
-    paramSetBase(n) = ModelResults(n).resultsBase.init.paramSet;
-    initSetBase(n) = ModelResults(n).resultsBase.init.initSet;
-    paramSetPrecious(n) = ModelResults(n).resultsPrecious.init.paramSet;
-    initSetPrecious(n) = ModelResults(n).resultsPrecious.init.initSet;
-    resultsPreprocessing(n) = ModelResults(n).resultsPreprocessing;
-    resultsEconomic(n) = ModelResults(n).resultsEconomic;
-    resultsEnvironmental(n) = ModelResults(n).resultsEnvironmental;
+    paramSetBase(n) = ModelResults(n).ModelResults.resultsBase.init.paramSet;
+    initSetBase(n) = ModelResults(n).ModelResults.resultsBase.init.initSet;
+    paramSetPrecious(n) = ModelResults(n).ModelResults.resultsPrecious.init.paramSet;
+    initSetPrecious(n) = ModelResults(n).ModelResults.resultsPrecious.init.initSet;
+    resultsPreprocessing(n) = ModelResults(n).ModelResults.resultsPreprocessing;
+    resultsEconomic(n) = ModelResults(n).ModelResults.resultsEconomic;
+    resultsEnvironmental(n) = ModelResults(n).ModelResults.resultsEnvironmental;
 end
 
 %% Annual Profit Plots
+figure
 subplot(2,1,1);
-scatter([paramSetBase.length],[resultsEconomic.netAnnualbeforeTax])
-xlabel('Base Metal Stage Flowrate (L/s)')
+scatter([paramSetBase.V_app],[resultsEconomic.netAnnualbeforeTax])
+xlabel('V applied (V)')
 ylabel('Net Annual Profit before tax (CA$)')
 subplot(2,1,2);
-scatter([paramSetBase.length],[resultsEconomic.netAnnualbeforeTax])
-xlabel('Precious Metal Stage Flowrate (L/s)')
+scatter([paramSetPrecious.V_app],[resultsEconomic.netAnnualbeforeTax])
+xlabel('V applied (V)')
 ylabel('Net Annual Profit before tax (CA$)')
 
 %% Find maximum profit simulation
