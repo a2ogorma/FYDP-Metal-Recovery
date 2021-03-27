@@ -15,7 +15,7 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
     TimeElapsed = toc;
     if (toc>3*60)
         flag(15) = 0; 
-        disp('ODE solver took too long.'); 
+        error('ODE solver took too long.'); 
     end
     global F z km_cell lamda rho rho_e mu_e Dab Sc 
     
