@@ -12,7 +12,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEnvironmental.metrics.energyIntensity = resultsEnvironmental.energy.total/(resultsPreprocessing.Throughput/1000); %in kWh/tonne
     %carbonIntensity
     carbonIntensityGrid = 30; %g CO2 eq/kWh from NIR (mentioned in report)
-    resultsEnvironmental.metrics.carbonIntensity = resultsEnvironmental.metrics.energyIntensity*carbonIntensityGrid; %in gCO2e/tonne
+    resultsEnvironmental.metrics.carbonIntensity = resultsEnvironmental.metrics.energyIntensity*carbonIntensityGrid/1e6; %in tonneCO2e/tonne
     %waterIntensity
     cycleWaterBase = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
     cycleWaterPrecious = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
@@ -196,9 +196,10 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     platedPrecious = (resultsPrecious.electrowinning.m_plated(end,:)-resultsPrecious.electrowinning.m_plated(1,:));
     resultsEconomic.revenue.Precious = resultsEnvironmental.water.PreciousCycles*platedPrecious*metalPrices'*sellingRate;    
     resultsEconomic.totalRevenue = resultsEconomic.revenue.Base + resultsEconomic.revenue.Precious;
-    
+    resultsEconomic.revenue.maxPsbl = resultsPreprocessing.Throughput*resultsPreprocessing.wtFracIn(2:7)*metalPrices'*sellingRate;
     resultsEconomic.netAnnualbeforeTax = resultsEconomic.totalRevenue - resultsEconomic.totalExpenses;
     taxRate = 0.3;
+    resultsEconomic.metrics.valueRecovMetals = resultsEconomic.totalRevenue/resultsEconomic.revenue.maxPsbl;
     resultsEconomic.metrics.netAnnualafterTax = (1-taxRate)*resultsEconomic.netAnnualbeforeTax;
     resultsEconomic.metrics.percentOp_of_Rev = resultsEconomic.totalExpenses/resultsEconomic.totalRevenue;
     resultsEconomic.metrics.paybackPeriod = resultsEconomic.fixedCost/resultsEconomic.metrics.netAnnualafterTax;

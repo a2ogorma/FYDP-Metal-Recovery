@@ -193,6 +193,32 @@ for j = 1:1:size(x,2)
     stats.monteCarlo.wasteRecovery.min = min(y);
     stats.monteCarlo.wasteRecovery.mean = mean(y);
     stats.monteCarlo.wasteRecovery.vals = y;
-    
+    %{
+    %wasteRecovery - to comment out until its in the code
+    yy = [resultsEconomic.metrics];
+    y = [yy.valueRecovMetals];
+    mdl = fitlm(xpval,y);
+    mdladj = fitlm(xpvaladj,y);
+    slope = mdl.Coefficients.Estimate(2);
+    slopeadj = mdladj.Coefficients.Estimate(2);
+    pvalue = mdl.Coefficients.pValue(2);
+    stats.valueRecovMetals(j).name = nameval;
+    stats.valueRecovMetals(j).pval = pvalue;
+    stats.valueRecovMetals(j).slope = slope;
+    stats.valueRecovMetals(j).slopeadj = slopeadj;
+    mdl = fitlm(xbval,y);
+    mdladj = fitlm(xbvaladj,y);
+    slope = mdl.Coefficients.Estimate(2);
+    slopeadj = mdladj.Coefficients.Estimate(2);
+    pvalue = mdl.Coefficients.pValue(2);
+    stats.valueRecovMetals(j).nameb = nameval;
+    stats.valueRecovMetals(j).pvalb = pvalue;
+    stats.valueRecovMetals(j).slopeb = slope;
+    stats.valueRecovMetals(j).slopeadjb = slopeadj;
+    stats.monteCarlo.valueRecovMetals.max = max(y);
+    stats.monteCarlo.valueRecovMetals.min = min(y);
+    stats.monteCarlo.valueRecovMetals.mean = mean(y);
+    stats.monteCarlo.valueRecovMetals.vals = y;
+    %}
 end
 %mdl.Rsquared.Ordinary

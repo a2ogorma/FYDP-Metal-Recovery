@@ -189,7 +189,7 @@ for run = 1:1:sims
         initSetPrecious.solution.Ci_Au3_cell = 0.0;
         initSetPrecious.solution.Ci_Pd2_cell = 0.0;
         initSetPrecious.solution.Ci_H_cell = 1E-10;
-        initSetPrecious.solution.Ci_S2O3_cell = 0.5;
+        initSetPrecious.solution.Ci_S2O3_cell = 0.01;
         initSetPrecious.solution.Ci_AuCl4_cell = 0;
         initSetPrecious.solution.Ci_cell = [initSetPrecious.solution.Ci_Cu2_cell initSetPrecious.solution.Ci_Sn2_cell initSetPrecious.solution.Ci_Fe2_cell ...
         initSetPrecious.solution.Ci_Fe3_cell initSetPrecious.solution.Ci_Ag_cell initSetPrecious.solution.Ci_Au3_cell initSetPrecious.solution.Ci_Pd2_cell ...
@@ -284,16 +284,16 @@ for run = 1:1:sims
 
         %% Save results %%
         if base_success == 0 || precious_success == 0 %fail
-            save(strcat('FullModel\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+            save(strcat('FullModel2\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
         else %success
-            save(strcat('FullModel\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+            save(strcat('FullModel2\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
         end
     catch exception %If model throws an unhandled exception
         try
-            save(strcat('FullModel\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
+            save(strcat('FullModel2\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
         catch
             try
-                save(strcat('FullModel\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'initSetBase','paramSetBase','exception');
+                save(strcat('FullModel2\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'initSetBase','paramSetBase','exception');
             catch
                 disp('Bleurgh')
             end
