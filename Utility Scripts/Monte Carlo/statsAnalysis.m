@@ -2,8 +2,8 @@ clear x
 %p = anovan([resultsEconomic.totalCapitalInvestment],{[paramSetPrecious.V_app],[paramSetPrecious.Q],[paramSetPrecious.tfinal],[paramSetPrecious.length],[paramSetPrecious.height],[paramSetPrecious.n_units],[paramSetPrecious.vol_bed]},'model',1,'varnames',{'Vapp','Q','time','length','height','units','bedvol'},'continuous',[1,2,4,5,7])
 PsolidPCB = [initSetPrecious.solidPCB];
 Psolution = [initSetPrecious.solution];
-BsolidPCB = [initSetPrecious.solidPCB];
-Bsolution = [initSetPrecious.solution];
+BsolidPCB = [initSetBase.solidPCB];
+Bsolution = [initSetBase.solution];
 x(1).name = 'Radius of initial particles (m)';
 x(1).valsPrec = [PsolidPCB.r_particles];
 x(1).valsBase = [BsolidPCB.r_particles];
