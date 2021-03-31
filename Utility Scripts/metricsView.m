@@ -2,10 +2,10 @@
 clear all
 %% Open Files
 
-sim_files = dir(fullfile('FullModel2', '*.mat'));
-ModelResults = open(fullfile('FullModel2',sim_files(1).name));
+sim_files = dir(fullfile('Simulations\FullModel3', '*.mat'));
+ModelResults = open(fullfile('Simulations\FullModel3',sim_files(1).name));
 for k = 2:1:length(sim_files)
-    ModelResults(k) = open(fullfile('FullModel2',sim_files(k).name));
+    ModelResults(k) = open(fullfile('Simulations\FullModel3',sim_files(k).name));
 end
 
 %% Extract Data

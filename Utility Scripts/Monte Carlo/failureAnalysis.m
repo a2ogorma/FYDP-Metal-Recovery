@@ -1,5 +1,5 @@
-fail = dir(fullfile('FullModel\FailedSims', '*.mat'));
-success = dir(fullfile('FullModel','*.mat'));
+fail = dir(fullfile('Simulations\FullModel3\FailedSims', '*.mat'));
+success = dir(fullfile('Simulations\FullModel3','*.mat'));
 %{
 result = open(fullfile('FullModel\FailedSims',fail(1).name));
 try
