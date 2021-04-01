@@ -1,6 +1,6 @@
 clear all
-sims = 1;
-for run = 1:1:sims
+d_particles = [1.4:0.2:10]; %mm
+for run = 1:1:numel(d_particles)
     %% Preprocessing %%
     resultsPreprocessing.wtFracIn = [0.753622 0.1936 0.0231 0.0294 167E-6 74.33E-6 36.67E-6]; %Inert Cu Sn Fe Ag Au Pd
     resultsPreprocessing.Throughput = 400000; %kg/yr, raw PCB feed
@@ -9,7 +9,7 @@ for run = 1:1:sims
     resultsPreprocessing.workingFactor = 0.25; %percentage of annual hours the preprocessing system works
     resultsPreprocessing.massFlowrate = resultsPreprocessing.Throughput/(resultsPreprocessing.CF*resultsPreprocessing.workingFactor*8760*3600); %kg/s
     %grinder
-    resultsPreprocessing.d_particles = 10/1000; %m, size coming out of grinder
+    resultsPreprocessing.d_particles = d_particles(run)/1000; %m, size coming out of grinder
     resultsPreprocessing.grinder.power = 0.008*resultsPreprocessing.massFlowrate/resultsPreprocessing.d_particles;%kW
     loss = 0.001; %fraction of material lost
     resultsPreprocessing.grinder.output = (1-loss)*resultsPreprocessing.Throughput; %kg/yr
@@ -283,9 +283,9 @@ for run = 1:1:sims
 
     %% Save results %%
     if base_success == 0 || precious_success == 0 %fail
-        save(strcat('Sensitivity\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+        save(strcat('Sensitivity\Dp1-10\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
     else %success
-        save(strcat('Sensitivity\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+        save(strcat('Sensitivity\Dp1-10\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
     end
 end
 toc
