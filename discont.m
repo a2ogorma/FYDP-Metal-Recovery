@@ -13,7 +13,7 @@ function [flag, isterminal, direction] = discont(t, Cm, temp, pres, vol_cell, ..
         disp('Error. Timestep contains complex number');
     end
     TimeElapsed = toc;
-    if (toc>3*60)
+    if (toc>5*60)
         flag(15) = 0; 
         disp('ODE solver took too long.'); 
     end

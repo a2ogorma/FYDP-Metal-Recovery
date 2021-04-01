@@ -88,7 +88,7 @@ for run = 1:1:numel(base_voltage)
     paramSetBase = struct;
     paramSetBase.temp = 298; %K
     paramSetBase.pres = 1; % atm
-    paramSetBase.Q = 2;% L/s (flowrate)
+    paramSetBase.Q = 1;% L/s (flowrate)
     %cell dimension information
     paramSetBase.length = 1.5; % m length of electrodes in flow direction x
     paramSetBase.height = 1; % m height of electrodes    paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
@@ -104,7 +104,7 @@ for run = 1:1:numel(base_voltage)
     paramSetBase.A_cell = paramSetBase.S_cat;
     %L (Initial) volume of bed holding the particles assuming the bed is half
     %full
-    paramSetBase.vol_bed = (V_PCB_total/0.6/0.4);
+    paramSetBase.vol_bed = (V_PCB_total/0.6/0.7);
     paramSetBase.vol_lch = paramSetBase.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
 
     paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
@@ -152,7 +152,7 @@ for run = 1:1:numel(base_voltage)
 
     %Post calculations for impact metrics
     %Practical additions here that dont affect the model
-    resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q; %flow rate in system
+    resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q/1000; %flow rate in system, m^3/s
     resultsBase.practical.pump.head = 3; %reasonable assumption value, m 
     resultsBase.practical.pump.specGravity = 1;
     resultsBase.practical.pump.shaftPower = 9.81*resultsBase.practical.pump.specGravity*resultsBase.practical.pump.flow*1000*resultsBase.practical.pump.head/1000;

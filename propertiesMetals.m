@@ -47,9 +47,9 @@ else %S2O3, precious metal system
     i0_7 = 1.80E-6; %Baron et al. 2013
     i0_9 = 7.3E-5;
 end
-i0_1 = 5E-5; %Cu
+i0_1 = 8.1E-4; %Cu
 i0_2 = 5E-6; %Sn
-i0_3 = 5E-6; %Fe3-> Fe2
+i0_3 = 6E-5; %Fe3-> Fe2 
 i0_4 = 7E-6; %Fe2 -> Fe(s)
 i0_6 = 4e-9; %AgCl
 i0_8 = 2E-8; %AuCl 

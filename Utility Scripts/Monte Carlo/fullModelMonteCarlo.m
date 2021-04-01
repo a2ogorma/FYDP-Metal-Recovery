@@ -1,16 +1,16 @@
 clear all
-sims = 2000;
+sims = 700;
 for run = 1:1:sims
     try
         %% Preprocessing %%
         resultsPreprocessing.wtFracIn = [0.753622 0.1936 0.0231 0.0294 167E-6 74.33E-6 36.67E-6]; %Inert Cu Sn Fe Ag Au Pd
-        resultsPreprocessing.Throughput = 400000; %kg/yr, raw PCB feed
+        resultsPreprocessing.Throughput = 200000; %kg/yr, raw PCB feed
         CF = 0.91; %capacity factor, operation hours per year
         resultsPreprocessing.CF = CF;
         resultsPreprocessing.workingFactor = 0.25; %percentage of annual hours the preprocessing system works
         resultsPreprocessing.massFlowrate = resultsPreprocessing.Throughput/(resultsPreprocessing.CF*resultsPreprocessing.workingFactor*8760*3600); %kg/s
         %grinder
-        resultsPreprocessing.d_particles = randintF(1,30,0)/1000; %m, size coming out of grinder
+        resultsPreprocessing.d_particles = randintF(1,20,0)/1000; %m, size coming out of grinder
         resultsPreprocessing.grinder.power = 0.008*resultsPreprocessing.massFlowrate/resultsPreprocessing.d_particles;%kW
         loss = 0.001; %fraction of material lost
         resultsPreprocessing.grinder.output = (1-loss)*resultsPreprocessing.Throughput; %kg/yr
@@ -43,9 +43,11 @@ for run = 1:1:sims
         %characteristics of solid PCB output from preprocessing
         initSetBase.solidPCB.wtfrac_PCB = resultsPreprocessing.wtFracOut;
         %Cycle time for Base and Metal recovery operations
-        tfinal_base = 24*3600*randintF(1,3,1);
+        tfinal_base = 36*3600;
+        %Number of extraction/recovery units in base metal stage
+        n_process_units = randintF(1,6,1);
         %PCB mass loaded per cycle
-        initSetBase.solidPCB.m_PCB_total = resultsPreprocessing.productionRate/(8760*CF)*tfinal_base/3600; %kg/yr/(hr/yr)*hr/cycle = kg/cycle
+        initSetBase.solidPCB.m_PCB_total = resultsPreprocessing.productionRate/(8760*CF)*tfinal_base/3600/n_process_units; %kg/yr/(hr/yr)*hr/cycle = kg/cycle
         global rho
         V_PCB_total = sum(initSetBase.solidPCB.m_PCB_total.*initSetBase.solidPCB.wtfrac_PCB./rho)*1000;%L
         %Particle radius, m
@@ -58,7 +60,7 @@ for run = 1:1:sims
         initSetBase.solution.Ci_Cu2_cell = 0.0001;
         initSetBase.solution.Ci_Sn2_cell = 0.0001;
         initSetBase.solution.Ci_Fe2_cell = 0.001;
-        initSetBase.solution.Ci_Fe3_cell = randintF(0.2,2,0);
+        initSetBase.solution.Ci_Fe3_cell = randintF(0.2,1.5,0);
         initSetBase.solution.Ci_Ag_cell = 0.00;
         initSetBase.solution.Ci_Au3_cell = 0.0;
         initSetBase.solution.Ci_Pd2_cell = 0.0;
@@ -88,35 +90,36 @@ for run = 1:1:sims
         paramSetBase = struct;
         paramSetBase.temp = 298; %K
         paramSetBase.pres = 1; % atm
-        paramSetBase.Q = randintF(0.5,10,0);% L/s (flowrate)
         %cell dimension information
-        paramSetBase.length = randintF(0.5,6,0); % m length of electrodes in flow direction x
-        paramSetBase.height = randintF(0.25,2,0); % m height of electrodes    paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
+        paramSetBase.length = randintF(0.5,3,0); % m length of electrodes in flow direction x
+        paramSetBase.height = 0.5; %m height of electrodes
+        %Electrode areas (one side), cm^2
+        paramSetBase.S_cat = paramSetBase.length*100*paramSetBase.height*100; %cm^2
+        paramSetBase.S_an = paramSetBase.S_cat;
+        paramSetBase.A_cell = paramSetBase.S_cat; %Cross sectional area of cellm height of electrodes
         paramSetBase.spacing_y = 0.045; %m spacing between electrodes 
         paramSetBase.spacing_x = 0.05; %m spacing between end of cell and electrodes
-        paramSetBase.n_units = randintF(1,30,1); %number of anode-cathode surface pairs
+        paramSetBase.n_units = randintF(2,40,1); %number of anode-cathode surface pairs
         paramSetBase.vol_cell = (paramSetBase.n_units*paramSetBase.spacing_y*...
         paramSetBase.height*(paramSetBase.length+2*paramSetBase.spacing_x))*1000; %L Volume of electrolyte in cell
-        %Electrode areas (one side), cm^2
-        paramSetBase.S_cat = (paramSetBase.height*100)*(paramSetBase.length*100);
-        paramSetBase.S_an = paramSetBase.S_cat;
-        %Cross sectional area of cell
-        paramSetBase.A_cell = paramSetBase.S_cat;
-        %L (Initial) volume of bed holding the particles assuming the bed is half
-        %full
-        paramSetBase.vol_bed = (V_PCB_total/0.6/randintF(0.3,0.7,0));
+        tau_cell = randintF(10,360,0); %residence time in EW cell, s
+        paramSetBase.Q = paramSetBase.vol_cell/tau_cell;% L/s (flowrate)
+        %L (Initial) volume of bed holding the particles assuming the bed
+        %is 70% full
+        paramSetBase.vol_bed = (V_PCB_total/0.6/0.7);
+        paramSetBase.LD_bed = randintF(4,10,0);
         paramSetBase.vol_lch = paramSetBase.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
 
         paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
         %Applied Voltage (potentiostat)
-        paramSetBase.V_app = randintF(1.5,6,0); %V
+        paramSetBase.V_app = randintF(2.4,6.5,0); %V
         %Applied Current to Cell (Galvanostat)
         paramSetBase.I_app = 36*0.01414; %A
         %Processing time
         paramSetBase.tfinal = tfinal_base; %s
 
         %Max current density for all rxns
-        paramSetBase.iL_default = 1; %A*m/dm^3
+        paramSetBase.iL_default = 100; %A*m/dm^3
         %fsolve options
         paramSetBase.foptions = optimoptions(@fsolve, 'Display','off', ...
         'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
@@ -152,7 +155,7 @@ for run = 1:1:sims
 
         %Post calculations for impact metrics
         %Practical additions here that dont affect the model
-        resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q; %flow rate in system
+        resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q/1000; %flow rate in system m^3
         resultsBase.practical.pump.head = 3; %reasonable assumption value, m 
         resultsBase.practical.pump.specGravity = 1;
         resultsBase.practical.pump.shaftPower = 9.81*resultsBase.practical.pump.specGravity*resultsBase.practical.pump.flow*1000*resultsBase.practical.pump.head/1000;
@@ -168,7 +171,7 @@ for run = 1:1:sims
         solution = 2; %1 is Cl- base metal, 2 is S2O3 precious metal
         propertiesMetals;
         initSetPrecious = struct;
-        tfinal_precious = 24*3600*randintF(1,3,1);
+        tfinal_precious = 72*3600;
         %characteristics of solid PCB input
         initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(size(resultsBase.t,1));
         m_PCB_p = resultsBase.PCB.massRem(size(resultsBase.t,1),:);
@@ -184,7 +187,7 @@ for run = 1:1:sims
         initSetPrecious.solution.Ci_Cu2_cell = 0.0;
         initSetPrecious.solution.Ci_Sn2_cell = 0.0;
         initSetPrecious.solution.Ci_Fe2_cell = 0.1;
-        initSetPrecious.solution.Ci_Fe3_cell = randintF(0.2,2,0);
+        initSetPrecious.solution.Ci_Fe3_cell = randintF(0.2,1.5,0);
         initSetPrecious.solution.Ci_Ag_cell = 0.0;
         initSetPrecious.solution.Ci_Au3_cell = 0.0;
         initSetPrecious.solution.Ci_Pd2_cell = 0.0;
@@ -212,15 +215,16 @@ for run = 1:1:sims
         paramSetPrecious = struct;
         paramSetPrecious.temp = 298; %K
         paramSetPrecious.pres = 1; % atm
-        paramSetPrecious.Q = randintF(0.5,10,0);% L/s (flowrate)
         %cell dimension information
-        paramSetPrecious.length = randintF(0.5,6,0); % m length of electrodes in flow direction x
-        paramSetPrecious.height = randintF(0.25,2,0); % m height of electrodes
+        paramSetPrecious.length = 1.5; % m length of electrodes in flow direction x
+        paramSetPrecious.height = 1; % m height of electrodes
         paramSetPrecious.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
         paramSetPrecious.spacing_y = 0.045; %m spacing between electrodes 
-        paramSetPrecious.n_units = randintF(1,30,1); %number of anode-cathode surface pairs
+        paramSetPrecious.n_units = randintF(2,40,1); %number of anode-cathode surface pairs
         paramSetPrecious.vol_cell = (paramSetPrecious.n_units*paramSetPrecious.spacing_y*...
         paramSetPrecious.height*(paramSetPrecious.length+2*paramSetPrecious.spacing_x))*1000; %L
+        tau = randintF(10,360,0); %residence time in EW cell, s
+        paramSetPrecious.Q = paramSetPrecious.vol_cell/tau;% L/s (flowrate)
         %Electrode areas, cm^2
         paramSetPrecious.S_cat = (paramSetPrecious.height*100)*(paramSetPrecious.length*100);
         paramSetPrecious.S_an = paramSetPrecious.S_cat;
@@ -228,7 +232,8 @@ for run = 1:1:sims
         paramSetPrecious.A_cell = paramSetPrecious.S_cat;
         %L (Initial) volume of bed holding the particles assuming the bed is half
         %full
-        paramSetPrecious.vol_bed = (V_PCB_total/0.6/randintF(0.3,0.7,0));
+        paramSetPrecious.vol_bed = V_PCB_total/0.6/0.7;
+        paramSetPrecious.LD_bed = 4;
         paramSetPrecious.vol_lch = paramSetPrecious.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
 
 
@@ -240,7 +245,7 @@ for run = 1:1:sims
         paramSetPrecious.tfinal = tfinal_precious; %s
 
         %Max current density for all rxns
-        paramSetPrecious.iL_default = 1; %A/cm^2
+        paramSetPrecious.iL_default = 10; %A/cm^2
         %fsolve options
         paramSetPrecious.foptions = optimoptions(@fsolve, 'Display','off', ...
         'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
@@ -284,18 +289,18 @@ for run = 1:1:sims
 
         %% Save results %%
         if base_success == 0 || precious_success == 0 %fail
-            save(strcat('FullModel3\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+            save(strcat('Simulations\MonteCarlo0401\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
         else %success
-            save(strcat('FullModel3\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+            save(strcat('Simulations\MonteCarlo0401\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
         end
     catch exception %If model throws an unhandled exception
         try
-            save(strcat('FullModel3\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
+            save(strcat('Simulations\MonteCarlo0401\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
         catch
             try
-                save(strcat('FullModel3\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'initSetBase','paramSetBase','exception');
+                save(strcat('Simulations\MonteCarlo0401\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'initSetBase','paramSetBase','exception');
             catch
-                disp('Bleurgh')
+                disp(exception.message)
             end
         end
     end

@@ -37,6 +37,7 @@ function results = metalER(initSet,paramSet)
     %Extraction vessel parameters
     vol_lch = paramSet.vol_lch; %L (Initial) volume of bed holding the particles assuming the bed is completly full.
     vol_bed = paramSet.vol_bed;
+    LD_bed = paramSet.LD_bed; %L/D ratio of the leaching bed
     tfinal = paramSet.tfinal; %s
     %Maximum current density default
     iL_default = paramSet.iL_default; %A/cm^2
@@ -84,9 +85,9 @@ function results = metalER(initSet,paramSet)
         Sh_cell = 0.0365*Re_cell^0.8.*Sc.^(1/3);
     end
     km_cell = Sh_cell.*Dab/len; %m/s 
-    LD_lch = 4; %L/D ratio of the leaching bed
+    
     vol_bed = vol_lch+sum(V_PCB_i);
-    D_lch = (vol_bed/1000*4/pi/LD_lch)^(1/3); %diameter in m
+    D_lch = (vol_bed/1000*4/pi/LD_bed)^(1/3); %diameter in m
     A_lch = pi*D_lch^2/4; %cross sectional area in m^2
     u_lch = Q/1000/A_lch; %superficial velocity, m/s
     Re_lch = u_lch*rho_e*r_particles_i*2/mu_e; %Assumes radius change throughout process is negligible
