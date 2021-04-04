@@ -174,8 +174,9 @@ for run = 1:1:sims
         tfinal_precious = 72*3600;
         %characteristics of solid PCB input
         initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(size(resultsBase.t,1));
-        m_PCB_p = resultsBase.PCB.massRem(size(resultsBase.t,1),:);
-        initSetPrecious.solidPCB.m_PCB_total = sum(m_PCB_p)*tfinal_precious/tfinal_base; %assumed waste input of 100000 kg/yr, 
+        m_PCB_p = resultsBase.numberUnits.*resultsBase.PCB.massRem(size(resultsBase.t,1),:);
+        numStageUnits = 1;
+        initSetPrecious.solidPCB.m_PCB_total = sum(m_PCB_p)*tfinal_precious/(tfinal_base*numStageUnits); %assumed waste input of 100000 kg/yr, 
         initSetPrecious.solidPCB.wtfrac_PCB = m_PCB_p/sum(m_PCB_p);
         initSetPrecious.m_deposited = [eps 0 0 0 0 0]; %Given a small mass of iron to prevent error
         V_PCB_total = sum(initSetPrecious.solidPCB.m_PCB_total.*initSetPrecious.solidPCB.wtfrac_PCB./rho)*1000;%L
@@ -270,7 +271,7 @@ for run = 1:1:sims
         end
 
         %Practical additions here that dont affect the model
-        resultsPrecious.practical.pump.flow = resultsPrecious.init.paramSet.Q; %flow rate in system
+        resultsPrecious.practical.pump.flow = resultsPrecious.init.paramSet.Q/1000; %flow rate in system
         resultsPrecious.practical.pump.head = 3; %reasonable assumption value
         resultsPrecious.practical.pump.specGravity = 1;
         resultsPrecious.practical.pump.shaftPower = 9.81*resultsPrecious.practical.pump.specGravity*resultsPrecious.practical.pump.flow*1000*resultsPrecious.practical.pump.head/1000;
