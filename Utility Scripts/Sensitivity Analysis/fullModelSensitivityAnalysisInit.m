@@ -1,16 +1,14 @@
 clear all
-d_particles = [1.4:0.2:10]; %mm
-base_voltage = [2:0.2:9]; %V 
 for run = 1:1:numel(base_voltage)
     %% Preprocessing %%
     resultsPreprocessing.wtFracIn = [0.753622 0.1936 0.0231 0.0294 167E-6 74.33E-6 36.67E-6]; %Inert Cu Sn Fe Ag Au Pd
-    resultsPreprocessing.Throughput = 400000; %kg/yr, raw PCB feed
+    resultsPreprocessing.Throughput = 200000; %kg/yr, raw PCB feed
     CF = 0.91; %capacity factor, operation hours per year
     resultsPreprocessing.CF = CF;
     resultsPreprocessing.workingFactor = 0.25; %percentage of annual hours the preprocessing system works
     resultsPreprocessing.massFlowrate = resultsPreprocessing.Throughput/(resultsPreprocessing.CF*resultsPreprocessing.workingFactor*8760*3600); %kg/s
     %grinder
-    resultsPreprocessing.d_particles = 10/1000; %m, size coming out of grinder
+    resultsPreprocessing.d_particles = 5/1000; %m, size coming out of grinder
     resultsPreprocessing.grinder.power = 0.008*resultsPreprocessing.massFlowrate/resultsPreprocessing.d_particles;%kW
     loss = 0.001; %fraction of material lost
     resultsPreprocessing.grinder.output = (1-loss)*resultsPreprocessing.Throughput; %kg/yr
@@ -43,9 +41,11 @@ for run = 1:1:numel(base_voltage)
     %characteristics of solid PCB output from preprocessing
     initSetBase.solidPCB.wtfrac_PCB = resultsPreprocessing.wtFracOut;
     %Cycle time for Base and Metal recovery operations
-    tfinal_base = 24*3600;
+    tfinal_base = 36*3600;
+    %Number of extraction/recovery units in base metal stage
+    n_process_units = 2;
     %PCB mass loaded per cycle
-    initSetBase.solidPCB.m_PCB_total = resultsPreprocessing.productionRate/(8760*CF)*tfinal_base/3600; %kg/yr/(hr/yr)*hr/cycle = kg/cycle
+    initSetBase.solidPCB.m_PCB_total = resultsPreprocessing.productionRate/(8760*CF)*tfinal_base/3600/n_process_units; %kg/yr/(hr/yr)*hr/cycle = kg/cycle
     global rho
     V_PCB_total = sum(initSetBase.solidPCB.m_PCB_total.*initSetBase.solidPCB.wtfrac_PCB./rho)*1000;%L
     %Particle radius, m
@@ -58,7 +58,7 @@ for run = 1:1:numel(base_voltage)
     initSetBase.solution.Ci_Cu2_cell = 0.0001;
     initSetBase.solution.Ci_Sn2_cell = 0.0001;
     initSetBase.solution.Ci_Fe2_cell = 0.001;
-    initSetBase.solution.Ci_Fe3_cell = 0.5;
+    initSetBase.solution.Ci_Fe3_cell = 1.2;
     initSetBase.solution.Ci_Ag_cell = 0.00;
     initSetBase.solution.Ci_Au3_cell = 0.0;
     initSetBase.solution.Ci_Pd2_cell = 0.0;
@@ -88,13 +88,13 @@ for run = 1:1:numel(base_voltage)
     paramSetBase = struct;
     paramSetBase.temp = 298; %K
     paramSetBase.pres = 1; % atm
-    paramSetBase.Q = 2;% L/s (flowrate)
     %cell dimension information
-    paramSetBase.length = 1.5; % m length of electrodes in flow direction x
-    paramSetBase.height = 1; % m height of electrodes    paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
+    paramSetBase.length = 2; % m length of electrodes in flow direction x
+    paramSetBase.height = 0.5; % m height of electrodes    paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
     paramSetBase.spacing_y = 0.045; %m spacing between electrodes 
     paramSetBase.spacing_x = 0.05; %m spacing between end of cell and electrodes
-    paramSetBase.n_units = 10; %number of anode-cathode surface pairs
+    Scat_total = 30; %total cathodic area target, m^2 
+    paramSetBase.n_units = ceil(Scat_total/(paramSetBase.length*paramSetBase.height)/2)*2; %number of anode-cathode surface pairs
     paramSetBase.vol_cell = (paramSetBase.n_units*paramSetBase.spacing_y*...
     paramSetBase.height*(paramSetBase.length+2*paramSetBase.spacing_x))*1000; %L Volume of electrolyte in cell
     %Electrode areas (one side), cm^2
@@ -104,19 +104,22 @@ for run = 1:1:numel(base_voltage)
     paramSetBase.A_cell = paramSetBase.S_cat;
     %L (Initial) volume of bed holding the particles assuming the bed is half
     %full
-    paramSetBase.vol_bed = (V_PCB_total/0.6/0.4);
+    paramSetBase.vol_bed = (V_PCB_total/0.6/0.7);
+    paramSetBase.LD_bed = 6; %L/d ratio of leaching bed
     paramSetBase.vol_lch = paramSetBase.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
+    tau_lch = 10; %residence time in leaching unit, s
+    paramSetBase.Q = paramSetBase.vol_lch/tau_lch;% L/s (flowrate)
 
     paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
     %Applied Voltage (potentiostat)
-    paramSetBase.V_app = base_voltage(run); %V
+    paramSetBase.V_app = 3; %V
     %Applied Current to Cell (Galvanostat)
     paramSetBase.I_app = 36*0.01414; %A
     %Processing time
     paramSetBase.tfinal = tfinal_base; %s
 
     %Max current density for all rxns
-    paramSetBase.iL_default = 1; %A*m/dm^3
+    paramSetBase.iL_default = 100; %A*m/dm^3
     %fsolve options
     paramSetBase.foptions = optimoptions(@fsolve, 'Display','off', ...
     'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
@@ -152,8 +155,8 @@ for run = 1:1:numel(base_voltage)
 
     %Post calculations for impact metrics
     %Practical additions here that dont affect the model
-    resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q; %flow rate in system
-    resultsBase.practical.pump.head = 3; %reasonable assumption value, m 
+    resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q/1000; %flow rate in system, m^3
+    resultsBase.practical.pump.head = 3; %reasonable assumption value, m of electrolyte
     resultsBase.practical.pump.specGravity = 1;
     resultsBase.practical.pump.shaftPower = 9.81*resultsBase.practical.pump.specGravity*resultsBase.practical.pump.flow*1000*resultsBase.practical.pump.head/1000;
     resultsBase.practical.pump.eff = 0.5;
@@ -229,6 +232,7 @@ for run = 1:1:numel(base_voltage)
     %L (Initial) volume of bed holding the particles assuming the bed is half
     %full
     paramSetPrecious.vol_bed = (V_PCB_total/0.6/0.7);
+    paramSetPrecious.LD_bed = 6; 
     paramSetPrecious.vol_lch = paramSetPrecious.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
 
 
@@ -240,7 +244,7 @@ for run = 1:1:numel(base_voltage)
     paramSetPrecious.tfinal = tfinal_precious; %s
 
     %Max current density for all rxns
-    paramSetPrecious.iL_default = 1; %A/cm^2
+    paramSetPrecious.iL_default = 10; %A/cm^2
     %fsolve options
     paramSetPrecious.foptions = optimoptions(@fsolve, 'Display','off', ...
     'MaxFunctionEvaluations', 5000, 'Algorithm', 'trust-region-dogleg', 'StepTolerance', 1E-7);
@@ -265,7 +269,7 @@ for run = 1:1:numel(base_voltage)
     end
 
     %Practical additions here that dont affect the model
-    resultsPrecious.practical.pump.flow = resultsPrecious.init.paramSet.Q; %flow rate in system
+    resultsPrecious.practical.pump.flow = resultsPrecious.init.paramSet.Q/1000; %flow rate in system
     resultsPrecious.practical.pump.head = 3; %reasonable assumption value
     resultsPrecious.practical.pump.specGravity = 1;
     resultsPrecious.practical.pump.shaftPower = 9.81*resultsPrecious.practical.pump.specGravity*resultsPrecious.practical.pump.flow*1000*resultsPrecious.practical.pump.head/1000;

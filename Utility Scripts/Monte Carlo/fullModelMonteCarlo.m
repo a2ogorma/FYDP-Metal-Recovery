@@ -109,7 +109,7 @@ for run = 1:1:sims
         paramSetBase.vol_bed = (V_PCB_total/0.6/0.7);
         paramSetBase.LD_bed = randintF(4,10,0);
         paramSetBase.vol_lch = paramSetBase.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
-
+        D_lch = (vol_bed/1000*4/pi/LD_bed)^(1/3); %diameter in m
         paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
         %Applied Voltage (potentiostat)
         paramSetBase.V_app = randintF(2.4,6.5,0); %V
@@ -156,7 +156,7 @@ for run = 1:1:sims
         %Post calculations for impact metrics
         %Practical additions here that dont affect the model
         resultsBase.practical.pump.flow = resultsBase.init.paramSet.Q/1000; %flow rate in system m^3
-        resultsBase.practical.pump.head = 3; %reasonable assumption value, m 
+        resultsBase.practical.pump.head = 10; %reasonable assumption value, m 
         resultsBase.practical.pump.specGravity = 1;
         resultsBase.practical.pump.shaftPower = 9.81*resultsBase.practical.pump.specGravity*resultsBase.practical.pump.flow*1000*resultsBase.practical.pump.head/1000;
         resultsBase.practical.pump.eff = 0.5;
@@ -270,8 +270,8 @@ for run = 1:1:sims
         end
 
         %Practical additions here that dont affect the model
-        resultsPrecious.practical.pump.flow = resultsPrecious.init.paramSet.Q; %flow rate in system
-        resultsPrecious.practical.pump.head = 3; %reasonable assumption value
+        resultsPrecious.practical.pump.flow = resultsPrecious.init.paramSet.Q/1000; %flow rate in system
+        resultsPrecious.practical.pump.head = 10; %reasonable assumption value
         resultsPrecious.practical.pump.specGravity = 1;
         resultsPrecious.practical.pump.shaftPower = 9.81*resultsPrecious.practical.pump.specGravity*resultsPrecious.practical.pump.flow*1000*resultsPrecious.practical.pump.head/1000;
         resultsPrecious.practical.pump.eff = 0.5;
@@ -289,16 +289,16 @@ for run = 1:1:sims
 
         %% Save results %%
         if base_success == 0 || precious_success == 0 %fail
-            save(strcat('Simulations\MonteCarlo0401\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+            save(strcat('Simulations\MonteCarlo0403\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
         else %success
-            save(strcat('Simulations\MonteCarlo0401\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+            save(strcat('Simulations\MonteCarlo0403\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
         end
     catch exception %If model throws an unhandled exception
         try
-            save(strcat('Simulations\MonteCarlo0401\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
+            save(strcat('Simulations\MonteCarlo0403\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'paramSetPrecious','initSetPrecious','initSetBase','paramSetBase','exception');
         catch
             try
-                save(strcat('Simulations\MonteCarlo0401\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'initSetBase','paramSetBase','exception');
+                save(strcat('Simulations\MonteCarlo0403\FailedSims\error',datestr(clock,'mmddHHMMSS'),'.mat'),'initSetBase','paramSetBase','exception');
             catch
                 disp(exception.message)
             end

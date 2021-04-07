@@ -2,17 +2,17 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %energyIntensity
     PF = 0.95; %power factor for energy consumed to produced in electrical grid
     resultsEnvironmental.energy.pumps = 8760*resultsPreprocessing.CF*(resultsBase.numberUnits*resultsBase.practical.pump.BHP + resultsPrecious.numberUnits*resultsPrecious.practical.pump.BHP); %make sure in kWh
-    resultsEnvironmental.energy.ESP = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.ESP.power; %make sure in kWh
+    resultsEnvironmental.energy.ESP = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.ESP.power; %make sure in kWh/yr
     resultsEnvironmental.energy.grinder = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.grinder.power; %make sure in kWh
     resultsEnvironmental.energy.drum = 8760*resultsPreprocessing.CF*resultsPreprocessing.workingFactor*resultsPreprocessing.drum.power; %make sure in kWh
-    resultsEnvironmental.energy.EWbase = resultsBase.numberUnits*trapz(resultsBase.t,(resultsBase.electrowinning.V_calc.*resultsBase.electrowinning.I_calc))/(PF*1000*3600); %in kWh
-    resultsEnvironmental.energy.EWprecious = resultsPrecious.numberUnits*trapz(resultsPrecious.t,(resultsPrecious.electrowinning.V_calc.*resultsPrecious.electrowinning.I_calc))/(PF*1000*3600); %in kWh
+    resultsEnvironmental.energy.EWbase = 8760*resultsPreprocessing.CF*resultsBase.numberUnits*(1/resultsBase.init.paramSet.tfinal)*trapz(resultsBase.t,(resultsBase.electrowinning.V_calc.*resultsBase.electrowinning.I_calc))/(PF*1000); %in kWh
+    resultsEnvironmental.energy.EWprecious = 8760*resultsPreprocessing.CF*resultsPrecious.numberUnits*(1/resultsPrecious.init.paramSet.tfinal)*trapz(resultsPrecious.t,(resultsPrecious.electrowinning.V_calc.*resultsPrecious.electrowinning.I_calc))/(PF*1000); %in kWh
     resultsEnvironmental.energy.agitators = 8760*resultsPreprocessing.CF*0.1*2; %0.1 kW for agitators, with 1 per stage
     resultsEnvironmental.energy.total = (resultsEnvironmental.energy.pumps + resultsEnvironmental.energy.ESP + resultsEnvironmental.energy.grinder + resultsEnvironmental.energy.drum + resultsEnvironmental.energy.EWbase + resultsEnvironmental.energy.EWprecious + resultsEnvironmental.energy.agitators);
     resultsEnvironmental.metrics.energyIntensity = resultsEnvironmental.energy.total/(resultsPreprocessing.Throughput/1000); %in kWh/tonne
     %carbonIntensity
     carbonIntensityGrid = 30; %g CO2 eq/kWh from NIR (mentioned in report)
-    resultsEnvironmental.metrics.carbonIntensity = resultsEnvironmental.metrics.energyIntensity*carbonIntensityGrid/1e6; %in tonneCO2e/tonne
+    resultsEnvironmental.metrics.carbonIntensity = resultsEnvironmental.metrics.energyIntensity*carbonIntensityGrid/1e6; %in tonneCO2e/tonne in
     %waterIntensity
     cycleWaterBase = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
     cycleWaterPrecious = 10; %amount of cycles the solution will leach metals through until the solution is drained and replaced by a fresh solution
@@ -28,7 +28,8 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEnvironmental.waste.platedPrecious = resultsEnvironmental.water.PreciousCycles*resultsPrecious.numberUnits*(sum(resultsPrecious.electrowinning.m_plated(end,:))-sum(resultsPrecious.electrowinning.m_plated(1,:)));
     resultsEnvironmental.waste.loadedBase = resultsEnvironmental.water.BaseCycles*resultsBase.numberUnits*resultsBase.init.initSet.solidPCB.m_PCB_total;
     resultsEnvironmental.metrics.wasteRecovery = (resultsEnvironmental.waste.platedBase+resultsEnvironmental.waste.platedPrecious)/resultsEnvironmental.waste.loadedBase;
-
+    resultsEnvironmental.metrics.energyIntensityPerMassMetal = resultsEnvironmental.energy.total/((resultsEnvironmental.waste.platedBase+ resultsEnvironmental.waste.platedPrecious)/1000); %in kWh/tonne
+    resultsEnvironmental.metrics.carbonIntensityPerMassMetal = resultsEnvironmental.metrics.energyIntensityPerMassMetal*carbonIntensityGrid/1e6; %in tonneCO2e/tonne metal recovered
     %% Economic %%
     CEPCI = 607.5/400;
     CADUSDconv = 1.27;
@@ -72,11 +73,11 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     thicknessCathode = 0.05; %m, temporary
     matDensityCathode = 11343;%kg/m3, lead
     matCostCathode = 1.61;%$/kg, lead
-    resultsEconomic.baseStage.cathodeCost = resultsBase.numberUnits*(A_cell/2)*thicknessCathode*matDensityCathode*matCostCathode;
+    resultsEconomic.baseStage.cathodeCost = resultsBase.init.paramSet.n_units*resultsBase.numberUnits*(A_cell/2)*thicknessCathode*matDensityCathode*matCostCathode;
     thicknessAnode = 0.05; %m, temporary
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
-    resultsEconomic.baseStage.anodeCost = resultsBase.numberUnits*(((resultsBase.init.paramSet.n_units/2)+1)/(resultsBase.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    resultsEconomic.baseStage.anodeCost = resultsPrecious.init.paramSet.n_units*resultsBase.numberUnits*(((resultsBase.init.paramSet.n_units/2)+1)/(resultsBase.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
     %agitator
     resultsEconomic.baseStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
     resultsEconomic.baseStage.agitator.Fbm = 1.3;
