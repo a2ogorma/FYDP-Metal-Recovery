@@ -70,7 +70,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     vT = 1; %1 horizontal, 2 vertical
     resultsEconomic.baseStage.electrowinning.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
     resultsEconomic.baseStage.electrowinning.Fbm = 2.8547;
-    resultsEconomic.baseStage.electrowinning.capcost = resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
+    resultsEconomic.baseStage.electrowinning.capcost = resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.electrowinning.Cp*resultsEconomic.baseStage.electrowinning.Fbm;
     %electrodes
     A_cell = resultsBase.init.paramSet.A_cell/10000; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
@@ -104,7 +104,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     vT = 1; %1 horizontal, 2 vertical
     resultsEconomic.preciousStage.electrowinning.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
     resultsEconomic.preciousStage.electrowinning.Fbm = 2.8547;
-    resultsEconomic.preciousStage.electrowinning.capcost = resultsPrecious.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
+    resultsEconomic.preciousStage.electrowinning.capcost = resultsPrecious.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.electrowinning.Cp*resultsEconomic.preciousStage.electrowinning.Fbm;
     %electrodes
     A_cell = resultsPrecious.init.paramSet.A_cell/10000; %m2, verify this works
     thicknessCathode = 0.05; %m, temporary
