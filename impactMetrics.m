@@ -25,9 +25,12 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEnvironmental.metrics.waterIntensity = (resultsEnvironmental.water.annualWaterBase+resultsEnvironmental.water.annualWaterPrecious)/(resultsPreprocessing.Throughput/1000); %L/tonne
     %wasteRecovery
     resultsEnvironmental.waste.platedBase = resultsEnvironmental.water.BaseCycles*resultsBase.numberUnits*(sum(resultsBase.electrowinning.m_plated(end,:))-sum(resultsBase.electrowinning.m_plated(1,:)));
+    resultsEnvironmental.waste.platedBaseCorrected = resultsEnvironmental.water.BaseCycles*resultsBase.numberUnits*(sum([resultsBase.electrowinning.m_plated(end,1:2) resultsBase.electrowinning.m_plated(end,4:6)])-sum([resultsBase.electrowinning.m_plated(1,1:2) resultsBase.electrowinning.m_plated(1,4:6)]));
     resultsEnvironmental.waste.platedPrecious = resultsEnvironmental.water.PreciousCycles*resultsPrecious.numberUnits*(sum(resultsPrecious.electrowinning.m_plated(end,:))-sum(resultsPrecious.electrowinning.m_plated(1,:)));
+    resultsEnvironmental.waste.platedPreciousCorrected = resultsEnvironmental.water.PreciousCycles*resultsPrecious.numberUnits*(sum([resultsPrecious.electrowinning.m_plated(end,1:2) resultsPrecious.electrowinning.m_plated(end,4:6)])-sum([resultsPrecious.electrowinning.m_plated(1,1:2) resultsPrecious.electrowinning.m_plated(1,4:6)]));
     resultsEnvironmental.waste.loadedBase = resultsEnvironmental.water.BaseCycles*resultsBase.numberUnits*resultsBase.init.initSet.solidPCB.m_PCB_total;
     resultsEnvironmental.metrics.wasteRecovery = (resultsEnvironmental.waste.platedBase+resultsEnvironmental.waste.platedPrecious)/resultsEnvironmental.waste.loadedBase;
+    resultsEnvironmental.metrics.wasteRecoveryCorrected = (resultsEnvironmental.waste.platedBaseCorrected+resultsEnvironmental.waste.platedPreciousCorrected)/resultsEnvironmental.waste.loadedBase;
     resultsEnvironmental.metrics.energyIntensityPerMassMetal = resultsEnvironmental.energy.total/((resultsEnvironmental.waste.platedBase+ resultsEnvironmental.waste.platedPrecious)/1000); %in kWh/tonne
     resultsEnvironmental.metrics.carbonIntensityPerMassMetal = resultsEnvironmental.metrics.energyIntensityPerMassMetal*carbonIntensityGrid/1e6; %in tonneCO2e/tonne metal recovered
     %% Economic %%

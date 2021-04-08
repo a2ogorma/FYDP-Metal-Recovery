@@ -106,32 +106,32 @@ global km
 km = ones(1, 10)*1.25E-3; %mass transfer coefficient for limiting current 
 %based on km for Co3+ given in 331 notes
 
-%Lamda infinity values NEED source for iron, tin, nickel rest are from ChE 331 notes
+%Lamda infinity values, CRC Handbook of Chemistry and Physics
+%units: 10^-4 m^2*S/mol
 lamda_1 = 107.2; %Cu2
-lamda_2 = 100; %Sn2
-lamda_3 = 100; %Fe2
-lamda_4 = 100; %Fe3
+lamda_2 = 71; %Sn2 (Pb2+ value used)
+lamda_3 = 54; %Fe2
+lamda_4 = 68; %Fe3
 lamda_8 = 349.81; %H
-lamda_10 = 100; %[AgCl4]
+lamda_10 = 61.9; %[AgCl4] (Ag+ value used)
 if solution == 1 %Cl-, base metal system
-    lamda_5 = 100; %Ag
-    lamda_6 = 100; %Au
-    lamda_7 = 100; %Pd2
+    lamda_5 = 61.9; %Ag
+    lamda_6 = 1; %Au
+    lamda_7 = 1; %Pd2
     lamda_9 = 76.35; %Cl-
 else
     %thiosulfate complexes:
-    lamda_5 = 100; %Ag
-    lamda_6 = 100; %Au
-    lamda_7 = 100; %Pd2
-    lamda_9 = 100; %S2o3
+    lamda_5 = 61.9; %Ag
+    lamda_6 = 1; %Au
+    lamda_7 = 1; %Pd2
+    lamda_9 = 85; %S2o3
 end
 global lamda
 lamda = [lamda_1 lamda_2 lamda_3 lamda_4 lamda_5 lamda_6 lamda_7 lamda_8 ...
-    lamda_9 lamda_10];
+    lamda_9 lamda_10]*0.0001; % m^2*s/mol
 
-%Density of inert material SUBJECT TO CHANGE (Based off range of epoxy)
 global rho
-rho_inert = 1200; %kg/m^3
+rho_inert = 1200; %kg/m^3, based off average density for epoxy
 %metal densities in kg/m^3 
 rho_Cu = 8960;
 rho_Sn = 5750;
@@ -153,12 +153,11 @@ mw = [0 mw_Cu mw_Sn mw_Fe mw_Ag mw_Au mw_Pd];
 
 %Electrolyte properties
 global mu_e rho_e
-mu_e = 0.000969; %Pa*s https://pubs.acs.org/doi/pdf/10.1021/je00025a008
-rho_e = 1008; %kg/m^3, https://www.handymath.com/cgi-bin/hcltble3.cgi?submit=Entry
-
+mu_e = 0.000969; %Pa*s Nishikata, 1981 https://pubs.acs.org/doi/pdf/10.1021/je00025a008
+rho_e = 1008; %kg/m^3  Density for HCL solution https://www.handymath.com/cgi-bin/hcltble3.cgi?submit=Entry
 %Ionic Diffusivities m^2/s (See properties spreadsheet) 
 global Dab
-Dab_1 = 4.43E-09; %Cu2+
+Dab_1 = 4.43E-09; %Cu2+ 
 Dab_2 = 4.43E-09; %Sn2+
 Dab_3 = 4.17E-09; %Fe2+
 Dab_4 = 2.78E-09; %Fe3+

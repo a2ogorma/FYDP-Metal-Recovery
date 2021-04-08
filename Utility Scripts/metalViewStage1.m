@@ -1,6 +1,6 @@
 %Plots for stage one extraction/recovery of base metals
 %Select metal here
-metal = 1;
+metal = 2;
 metal_names = {'Copper';'Tin';'Iron';'Silver';'Gold';'Palladium'};
 ion_names = {'Cu2+', 'Sn2+', 'Fe2+', 'Fe3+', 'Ag+', 'Au3+', 'Pd2+'};
 propertiesMetals

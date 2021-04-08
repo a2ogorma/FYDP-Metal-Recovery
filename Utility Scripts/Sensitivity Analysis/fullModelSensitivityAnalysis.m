@@ -8,8 +8,8 @@ Scat_total = [10:2:50]; %m^2
 precious_cycletime = [48:1:96]; %hrs
 precious_taulch = [10:4:60]; %s
 p_nunits = [2:1:40]; %number of cathode-anode pairs
-
-for run = 1:1:numel(base_cycletime)
+p_voltage = [3:0.2:7]; %V
+for run = 1:1:numel(p_voltage)
     %% Preprocessing %%
     resultsPreprocessing.wtFracIn = [0.753622 0.1936 0.0231 0.0294 167E-6 74.33E-6 36.67E-6]; %Inert Cu Sn Fe Ag Au Pd
     resultsPreprocessing.Throughput = 200000; %kg/yr, raw PCB feed
@@ -51,7 +51,7 @@ for run = 1:1:numel(base_cycletime)
     %characteristics of solid PCB output from preprocessing
     initSetBase.solidPCB.wtfrac_PCB = resultsPreprocessing.wtFracOut;
     %Cycle time for Base and Metal recovery operations
-    tfinal_base = base_cycletime(run)*3600;
+    tfinal_base = 36*3600;
     %Number of extraction/recovery units in base metal stage
     n_process_units = 2;
     %PCB mass loaded per cycle
@@ -249,7 +249,7 @@ for run = 1:1:numel(base_cycletime)
 
     paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
     %Applied Voltage (potentiostat)
-    paramSetPrecious.V_app = 3; %V
+    paramSetPrecious.V_app = p_voltage(run); %V
     %Applied Current to Cell (Galvanostat)
     paramSetPrecious.I_app = 25;%36*0.01414; %A
     paramSetPrecious.tfinal = tfinal_precious; %s
@@ -299,9 +299,9 @@ for run = 1:1:numel(base_cycletime)
 
     %% Save results %%
     if base_success == 0 || precious_success == 0 %fail
-        save(strcat('Simulations\Sensitivity\tcycle24-72\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+        save(strcat('Simulations\Sensitivity\p_voltage3-7\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
     else %success
-        save(strcat('Simulations\Sensitivity\tcycle24-72\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+        save(strcat('Simulations\Sensitivity\p_voltage3-7\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
     end
 end
 toc

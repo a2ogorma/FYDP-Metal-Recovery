@@ -1,6 +1,6 @@
 %Plots for stage two extraction/recovery of precious
 %Select metal here
-metal = 3;
+metal = 6;
 solution = 2;
 metal_names = {'Copper';'Tin';'Iron';'Silver';'Gold';'Palladium'};
 ion_names = {'Cu2+', 'Sn2+', 'Fe2+', 'Fe3+', 'Ag+', 'Au3+', 'Pd2+'};
