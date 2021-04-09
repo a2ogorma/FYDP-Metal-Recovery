@@ -125,7 +125,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %%%%%ADD rectifier costs maybe?
     %totalcapcost
     resultsEconomic.capcost = resultsEconomic.preciousStage.capcost + resultsEconomic.baseStage.capcost + resultsEconomic.preprocessing.capcost;
-    contingencyandfees = 0.18;
+    contingencyandfees = 0.30;
     greenfield = 0.3; %auxiliary facilities and utilities supply
     resultsEconomic.fixedCost = (1+contingencyandfees+greenfield)*resultsEconomic.capcost;
     workingCapital = 0.15; % 10-20%
@@ -146,7 +146,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     
     %Labour costs
     labourCost = 20; %$/hr - suggestion from 480
-    labourDensity = 1;%people working while plant operating
+    labourDensity = 2;%people working while plant operating
     labourHours = 8760*resultsPreprocessing.CF*labourDensity; %Assumed 3 people working per working hours rn
     resultsEconomic.operating.labourCost = labourHours*labourCost;
     resultsEconomic.operating.supervisorCost = 0.15*resultsEconomic.operating.labourCost; %10-30% supervisory and clerical according to 480
@@ -195,7 +195,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     % Moneymaking
     %deposited metal selling amounts
     metalPrices = [4.77 38.8896 1.7 1039.55 69335.99 95246.27]; %find better sources for this
-    sellingRate = 0.9;% 90% of metal price
+    sellingRate = 0.75;% 75% of metal price
     platedBase = subplus(resultsBase.electrowinning.m_plated(end,:)-resultsBase.electrowinning.m_plated(1,:));
     resultsEconomic.revenue.Base = resultsEnvironmental.water.BaseCycles*platedBase*metalPrices'*sellingRate;
     platedPrecious = (resultsPrecious.electrowinning.m_plated(end,:)-resultsPrecious.electrowinning.m_plated(1,:));
