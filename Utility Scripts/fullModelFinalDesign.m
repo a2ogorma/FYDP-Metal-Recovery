@@ -169,7 +169,7 @@ ModelResults.resultsBase = resultsBase;
 solution = 2; %1 is Cl- base metal, 2 is S2O3 precious metal
 propertiesMetals;
 initSetPrecious = struct;
-tfinal_precious = 24*3600*3;
+tfinal_precious = 24*3600*4;
 %characteristics of solid PCB input
 initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(size(resultsBase.t,1));
 m_PCB_p = resultsBase.PCB.massRem(size(resultsBase.t,1),:);

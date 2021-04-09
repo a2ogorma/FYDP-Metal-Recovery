@@ -1,7 +1,7 @@
-yy = [resultsSuccessEconomic.metrics];
+yy = [resultsEconomicFeasible.metrics];
 y = [yy.netAnnualafterTax];
-xb = [paramSetSuccessBase.tfinal];
-xp = [paramSetSuccessPrecious.tfinal];
+xb = [paramSetBaseFeasible.tfinal];
+xp = [paramSetPreciousFeasible.tfinal];
 for k = 1:1:size(y,2)
     if xb(k) > 200000
         xbind(k) = 1;

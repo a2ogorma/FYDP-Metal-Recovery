@@ -123,7 +123,7 @@ for j = 1:1:size(x,2)
     xpval = x(j).valsFeasPrec;
     xpIval = x(j).valsInPrec;
     xbval = x(j).valsFeasBase;
-    xbIval = x(j).valsInPrec;
+    xbIval = x(j).valsInBase;
     xpallval = x(j).valsAllPrec;
     xballval = x(j).valsAllBase;
     nameval = x(j).name;
@@ -135,30 +135,36 @@ for j = 1:1:size(x,2)
     hslope = (h.YData(2)-h.YData(1))/(h.XData(2)-h.XData(1));
     hyint = h.YData(1) - hslope*h.XData(1);
     posit = 0.25*range(xbval)+min(xbval);
-    text(posit,3E5,strcat('y = ',' ',num2str(hslope,2),'*x + ',' ',num2str(hyint,2)),'FontSize',15)
+    text(posit,4.5E5,strcat('y = ',' ',num2str(hslope,2),'*x + ',' ',num2str(hyint,2)),'FontSize',15)
     hold on
-    scatter(xbval,y, [], [0 0 0.5]);
-    scatter(xbIval, yI);
+    scatter(xbval,y, [], [0 0.4470 0.7410]);
+    scatter(xbIval, yI, [], 'red');
     legend('Legend','Trendline','Feasible runs','Infeasible runs')
     hold off
     xlabel(nameval, 'FontSize',17)
     ylabel(yval, 'FontSize',17)
     title('Base Metal Recovery Stage','FontSize',17)
+    if j > 13
+        xlim([0 1000])
+    end
     subplot(2,1,2);
     scatter(xpallval, yall,'MarkerEdgeColor','none');
     h = lsline;
     hslope = (h.YData(2)-h.YData(1))/(h.XData(2)-h.XData(1));
     hyint = h.YData(1) - hslope*h.XData(1);
     posit = 0.25*range(xpval)+min(xpval);
-    text(posit,3E5,strcat('y = ',' ',num2str(hslope,2),'*x + ',' ',num2str(hyint,2)),'FontSize',15)
+    text(posit,4.5E5,strcat('y = ',' ',num2str(hslope,2),'*x + ',' ',num2str(hyint,2)),'FontSize',15)
     hold on
-    scatter(xpval,y, [], 'blue');    
-    scatter(xpIval, yI);
+    scatter(xpval,y, [], [0 0.4470 0.7410]);    
+    scatter(xpIval, yI, [], 'red');
     legend('Legend','Trendline','Feasible runs','Infeasible runs')
     hold off
     xlabel(nameval,'FontSize',17)
     ylabel(yval,'FontSize',17)
     title('Precious Metal Recovery Stage','FontSize',17)
+    if j > 13
+        xlim([0 1000])
+    end
     f.Position(1) = 0;
     f.Position(2) = 0;
     f.Position(3) = 1173;

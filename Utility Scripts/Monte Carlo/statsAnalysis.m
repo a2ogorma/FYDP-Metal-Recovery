@@ -68,14 +68,14 @@ clear x
     stats.totalExpenses.vals = y;
 %% Fails
     %paybackPeriod
-    yy = [resultsSuccessEconomic.metrics];
+    yy = [resultsEconomicFeasible.metrics];
     y = [yy.paybackPeriod];
     statsSuc.paybackPeriod.max = max(y);
     statsSuc.paybackPeriod.min = min(y);
     statsSuc.paybackPeriod.mean = mean(y);
     statsSuc.paybackPeriod.vals = y;
     %percentOp_of_Rev
-    yy = [resultsSuccessEconomic.metrics];
+    yy = [resultsEconomicFeasible.metrics];
     y = [yy.percentOp_of_Rev];
     
     statsSuc.percentOp_of_Rev.max = max(y);
@@ -83,7 +83,7 @@ clear x
     statsSuc.percentOp_of_Rev.mean = mean(y);
     statsSuc.percentOp_of_Rev.vals = y;
     %netAnnualafterTax
-    yy = [resultsSuccessEconomic.metrics];
+    yy = [resultsEconomicFeasible.metrics];
     y = [yy.netAnnualafterTax];
     
     statsSuc.netAnnualafterTax.max = max(y);
@@ -91,7 +91,7 @@ clear x
     statsSuc.netAnnualafterTax.mean = mean(y);
     statsSuc.netAnnualafterTax.vals = y;
     %waterIntensity
-    yy = [resultsSuccessEnvironmental.metrics];
+    yy = [resultsEnvironmentalFeasible.metrics];
     y = [yy.waterIntensity];
     
     statsSuc.waterIntensity.max = max(y);
@@ -99,7 +99,7 @@ clear x
     statsSuc.waterIntensity.mean = mean(y);
     statsSuc.waterIntensity.vals = y;
     %carbonIntensity
-    yy = [resultsSuccessEnvironmental.metrics];
+    yy = [resultsEnvironmentalFeasible.metrics];
     y = [yy.carbonIntensity];
     
     statsSuc.carbonIntensity.max = max(y);
@@ -107,27 +107,27 @@ clear x
     statsSuc.carbonIntensity.mean = mean(y);
     statsSuc.carbonIntensity.vals = y;
     %wasteRecovery
-    yy = [resultsSuccessEnvironmental.metrics];
+    yy = [resultsEnvironmentalFeasible.metrics];
     y = [yy.wasteRecovery];
     statsSuc.wasteRecovery.max = max(y);
     statsSuc.wasteRecovery.min = min(y);
     statsSuc.wasteRecovery.mean = mean(y);
     statsSuc.wasteRecovery.vals = y;
     %
-    y = [resultsSuccessEconomic.totalCapitalInvestment];
+    y = [resultsEconomicFeasible.totalCapitalInvestment];
     statsSuc.totalCapitalInvestment.max = max(y);
     statsSuc.totalCapitalInvestment.min = min(y);
     statsSuc.totalCapitalInvestment.mean = mean(y);
     statsSuc.totalCapitalInvestment.vals = y;
     %
-    y = [resultsSuccessEconomic.totalRevenue];
+    y = [resultsEconomicFeasible.totalRevenue];
     statsSuc.totalRevenue.max = max(y);
     statsSuc.totalRevenue.min = min(y);
     statsSuc.totalRevenue.mean = mean(y);
     statsSuc.totalRevenue.vals = y;
     
     %
-    y = [resultsSuccessEconomic.totalExpenses];
+    y = [resultsEconomicFeasible.totalExpenses];
     statsSuc.totalExpenses.max = max(y);
     statsSuc.totalExpenses.min = min(y);
     statsSuc.totalExpenses.mean = mean(y);
@@ -140,7 +140,7 @@ clear x
     stats.valueRecovMetals.mean = mean(y);
     stats.valueRecovMetals.vals = y;
     
-    yy = [resultsSuccessEconomic.metrics];
+    yy = [resultsEconomicFeasible.metrics];
     y = [yy.valueRecovMetals];
     statsSuc.valueRecovMetals.max = max(y);
     statsSuc.valueRecovMetals.min = min(y);

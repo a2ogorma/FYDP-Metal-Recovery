@@ -2,10 +2,10 @@
 clear all
 %% Open Files
 
-sim_files = dir(fullfile('Simulations\MonteCarloStage1', '*.mat'));
-ModelResults = open(fullfile('Simulations\MonteCarloStage1',sim_files(1).name));
+sim_files = dir(fullfile('Simulations\MonteCarloStage2', '*.mat'));
+ModelResults = open(fullfile('Simulations\MonteCarloStage2',sim_files(1).name));
 for k = 2:1:length(sim_files)
-    ModelResults(k) = open(fullfile('Simulations\MonteCarloStage1',sim_files(k).name));
+    ModelResults(k) = open(fullfile('Simulations\MonteCarloStage2',sim_files(k).name));
 end
 numFail = 0;
 
@@ -30,6 +30,7 @@ for n = 1:1:length(ModelResults)
         resultsEconomicInfeasible(n) = ModelResults(n).ModelResults.resultsEconomic;
         resultsEnvironmentalInfeasible(n) = ModelResults(n).ModelResults.resultsEnvironmental;
         resultsBaseInfeasible(n) = ModelResults(n).ModelResults.resultsBase;
+        resultsPreciousInfeasible(n) = ModelResults(n).ModelResults.resultsPrecious;
         numFail = numFail + 1;
     else
         paramSetBaseFeasible(n) = ModelResults(n).ModelResults.resultsBase.init.paramSet;
@@ -40,6 +41,7 @@ for n = 1:1:length(ModelResults)
         resultsEconomicFeasible(n) = ModelResults(n).ModelResults.resultsEconomic;
         resultsEnvironmentalFeasible(n) = ModelResults(n).ModelResults.resultsEnvironmental;
         resultsBaseFeasible(n) = ModelResults(n).ModelResults.resultsBase;
+        resultsPreciousFeasible(n) = ModelResults(n).ModelResults.resultsPrecious;
     end
 end
 numSuc = length(ModelResults) - numFail;
