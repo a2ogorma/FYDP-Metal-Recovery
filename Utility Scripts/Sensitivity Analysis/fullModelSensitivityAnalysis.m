@@ -9,7 +9,8 @@ precious_cycletime = [48:1:96]; %hrs
 precious_taulch = [10:4:60]; %s
 p_nunits = [2:1:40]; %number of cathode-anode pairs
 p_voltage = [3:0.2:7]; %V
-for run = 1:1:numel(p_voltage)
+n_precious_process_units = [1:1:2]; 
+for run = 1:1:numel(n_precious_process_units)
     %% Preprocessing %%
     resultsPreprocessing.wtFracIn = [0.753622 0.1936 0.0231 0.0294 167E-6 74.33E-6 36.67E-6]; %Inert Cu Sn Fe Ag Au Pd
     resultsPreprocessing.Throughput = 200000; %kg/yr, raw PCB feed
@@ -121,7 +122,7 @@ for run = 1:1:numel(p_voltage)
     L_lch = paramSetBase.LD_bed*D_lch; %length of bed in m
     rt = 20; %residence time in leaching unit, s
     paramSetBase.Q = paramSetBase.vol_lch/rt;% L/s (flowrate)
-
+    paramSetBase.Q = 1.2; %L/s
     paramSetBase.mode = 1; %1 - potentiostat, 2 - galvanostat
     %Applied Voltage (potentiostat)
     paramSetBase.V_app = 3; %V
@@ -249,7 +250,7 @@ for run = 1:1:numel(p_voltage)
 
     paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
     %Applied Voltage (potentiostat)
-    paramSetPrecious.V_app = p_voltage(run); %V
+    paramSetPrecious.V_app = 3; %V
     %Applied Current to Cell (Galvanostat)
     paramSetPrecious.I_app = 25;%36*0.01414; %A
     paramSetPrecious.tfinal = tfinal_precious; %s
@@ -299,9 +300,9 @@ for run = 1:1:numel(p_voltage)
 
     %% Save results %%
     if base_success == 0 || precious_success == 0 %fail
-        save(strcat('Simulations\Sensitivity\p_voltage3-7\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+        save(strcat('Simulations\Sensitivity\p_processunits\FailedSims\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
     else %success
-        save(strcat('Simulations\Sensitivity\p_voltage3-7\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
+        save(strcat('Simulations\Sensitivity\p_processunits\Sim',datestr(clock,'mmddHHMMSS'),'.mat'),'ModelResults');
     end
 end
 toc

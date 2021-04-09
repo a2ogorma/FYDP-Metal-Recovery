@@ -172,7 +172,7 @@ initSetPrecious = struct;
 tfinal_precious = 24*3600*4;
 %characteristics of solid PCB input
 initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(size(resultsBase.t,1));
-m_PCB_p = resultsBase.PCB.massRem(size(resultsBase.t,1),:);
+m_PCB_p = resultsBase.PCB.massRem(size(resultsBase.t,1),:);%*resultsBase.numberUnits;
 initSetPrecious.solidPCB.m_PCB_total = sum(m_PCB_p)*tfinal_precious/tfinal_base; %assumed waste input of 100000 kg/yr, 
 initSetPrecious.solidPCB.wtfrac_PCB = m_PCB_p/sum(m_PCB_p);
 initSetPrecious.m_deposited = [eps 0 0 0 0 0]; %Given a small mass of iron to prevent error

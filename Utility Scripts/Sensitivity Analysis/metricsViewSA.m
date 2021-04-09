@@ -1,10 +1,10 @@
 %%{
 clear all
 %% Open File
-sim_files = dir(fullfile('Simulations\Sensitivity\Dp1-8', '*.mat'));
-ModelResults = open(fullfile('Simulations\Sensitivity\Dp1-8',sim_files(1).name));
+sim_files = dir(fullfile('Simulations\Sensitivity\p_voltage3-7', '*.mat'));
+ModelResults = open(fullfile('Simulations\Sensitivity\p_voltage3-7',sim_files(1).name));
 for k = 2:1:length(sim_files)
-    ModelResults(k) = open(fullfile('Simulations\Sensitivity\Dp1-8',sim_files(k).name));
+    ModelResults(k) = open(fullfile('Simulations\Sensitivity\p_voltage3-7',sim_files(k).name));
 end
 
 %% Extract Data
