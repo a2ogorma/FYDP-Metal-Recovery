@@ -54,8 +54,8 @@ initSetBase.solidPCB.r_particles = resultsPreprocessing.d_particles/2;
 initSetBase.solution.type = solution;%1 is Cl- base metal, 2 is S2O3 precious metal
 %initial concentrations in mol/L
 %Cell Concentrations (recovery)
-initSetBase.solution.Ci_Cu2_cell = 0.0001;
-initSetBase.solution.Ci_Sn2_cell = 0.0001;
+initSetBase.solution.Ci_Cu2_cell = 0.01;
+initSetBase.solution.Ci_Sn2_cell = 0.01;
 initSetBase.solution.Ci_Fe2_cell = 0.001;
 initSetBase.solution.Ci_Fe3_cell = 1.4;
 initSetBase.solution.Ci_Ag_cell = 0.00;
@@ -92,7 +92,7 @@ paramSetBase.length = 2; % m length of electrodes in flow direction x
 paramSetBase.height = 0.5; % m height of electrodes    paramSetBase.spacing_x = 0.1; % m gap between end of electrode and vessel inlet/outlet
 paramSetBase.spacing_y = 0.045; %m spacing between electrodes 
 paramSetBase.spacing_x = 0.05; %m spacing between end of cell and electrodes
-paramSetBase.n_units = 28; %number of anode-cathode surface pairs
+paramSetBase.n_units = 18; %number of anode-cathode surface pairs
 paramSetBase.vol_cell = (paramSetBase.n_units*paramSetBase.spacing_y*...
 paramSetBase.height*(paramSetBase.length+2*paramSetBase.spacing_x))*1000; %L Volume of electrolyte in cell
 %Electrode areas (one side), cm^2
@@ -172,7 +172,7 @@ initSetPrecious = struct;
 tfinal_precious = 24*3600*4;
 %characteristics of solid PCB input
 initSetPrecious.solidPCB.r_particles = resultsBase.PCB.r_particles(size(resultsBase.t,1));
-m_PCB_p = resultsBase.PCB.massRem(size(resultsBase.t,1),:);%*resultsBase.numberUnits;
+m_PCB_p = resultsBase.PCB.massRem(size(resultsBase.t,1),:)*resultsBase.numberUnits;
 initSetPrecious.solidPCB.m_PCB_total = sum(m_PCB_p)*tfinal_precious/tfinal_base; %assumed waste input of 100000 kg/yr, 
 initSetPrecious.solidPCB.wtfrac_PCB = m_PCB_p/sum(m_PCB_p);
 initSetPrecious.m_deposited = [eps 0 0 0 0 0]; %Given a small mass of iron to prevent error
@@ -213,7 +213,6 @@ initSetPrecious.solution.Ci_H_lch initSetPrecious.solution.Ci_S2O3_lch initSetPr
 paramSetPrecious = struct;
 paramSetPrecious.temp = 298; %K
 paramSetPrecious.pres = 1; % atm
-paramSetPrecious.Q = 6;% L/s (flowrate)
 %cell dimension information
 paramSetPrecious.length = 1.5; % m length of electrodes in flow direction x
 paramSetPrecious.height = 1; % m height of electrodes
@@ -230,9 +229,10 @@ paramSetPrecious.A_cell = paramSetPrecious.S_cat;
 %L (Initial) volume of bed holding the particles assuming the bed is half
 %full
 paramSetPrecious.vol_bed = (V_PCB_total/0.6/0.7);
-paramSetPrecious.LD_bed = 4; 
+paramSetPrecious.LD_bed = 3; 
 paramSetPrecious.vol_lch = paramSetPrecious.vol_bed-V_PCB_total; %L, volume of electrolyte in bed
-
+p_tau_lch = 10; %s
+paramSetPrecious.Q = paramSetPrecious.vol_lch/p_tau_lch;% L/s (flowrate)
 
 paramSetPrecious.mode = 1; %1 - potentiostat, 2 - galvanostat
 %Applied Voltage (potentiostat)

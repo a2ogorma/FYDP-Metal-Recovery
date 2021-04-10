@@ -1,10 +1,10 @@
 %%{
 clear all
 %% Open File
-sim_files = dir(fullfile('Simulations\Sensitivity\p_voltage3-7', '*.mat'));
-ModelResults = open(fullfile('Simulations\Sensitivity\p_voltage3-7',sim_files(1).name));
+sim_files = dir(fullfile('Simulations\Sensitivity\p_tau_lch10-60', '*.mat'));
+ModelResults = open(fullfile('Simulations\Sensitivity\p_tau_lch10-60',sim_files(1).name));
 for k = 2:1:length(sim_files)
-    ModelResults(k) = open(fullfile('Simulations\Sensitivity\p_voltage3-7',sim_files(k).name));
+    ModelResults(k) = open(fullfile('Simulations\Sensitivity\p_tau_lch10-60',sim_files(k).name));
 end
 
 %% Extract Data
@@ -39,39 +39,38 @@ for n = 1:1:length(ModelResults.ModelResults)
 end
 %}
 %% Plots
-idx = 2; %starting index
-%x = [paramSetBaseFeasible.n_units];
-%sol = [initSetBaseFeasible.solution];
+idx = 1; %starting index
+sol = [initSetBase.solution];
 %x = [sol.Ci_Fe3_cell];
-x = [resultsPreprocessing.d_particles];
-%x = [paramSetPreciousFeasible.n_units];
-%xif = [paramSetPreciousFeasible.tfinal]/3600;
+%x = [paramSetBase.V_app];
+%x = [resultsPreprocessing.d_particles]*1000;
+%x = [paramSetBase.tfinal]/3600;
+x = [paramSetPrecious.Q];
 x = x(idx:end);
-y = [resultsEconomicFeasible.metrics];
-y = y(idx:end);
-ec = [resultsEconomicFeasible];
+met = [resultsEconomic.metrics];
+met = met(idx:end);
+ec = [resultsEconomic];
 ec = ec(idx:end);
-env = [resultsEnvironmentalFeasible.metrics];
+env = [resultsEnvironmental.metrics];
 env = env(idx:end);
-xaxis = 'Grinder Output Diameter (mm)';
+xaxis = 'Precious metal stage flowrate (L/s)';
 figure
 subplot(2,2,1);
 %plot(x,[ec.totalExpenses],'b.')
-plot(x,[ec.totalCapitalInvestment],'b.',x,[ec.totalExpenses],'r.')
+plot(x, [ec.totalCapitalInvestment],'b.',x,[ec.totalExpenses],'r.',x,[met.netAnnualafterTax],'g.')
 xlabel(xaxis)
-ylabel('Cost (CA$/yr)')
-%ylabel('Operating Cost (CA$/yr)')
-legend('Capital Investment', 'Annual Operating Expenses')
+ylabel('CA$')
+legend('Capital Investment', 'Annual Operating Expenses', 'Net Annual Profit')
 subplot(2,2,2);
-plot(x,[y.netAnnualafterTax],'b.')
+plot(x,[met.paybackPeriod],'b.')
 xlabel(xaxis)
-ylabel('Net Annual Profit after tax (CA$)')
+ylabel('Payback period (yrs)')
 subplot(2,2,3);
 plot(x,[env.carbonIntensityPerMassMetal],'b.')
 xlabel(xaxis)
 ylabel('Carbon Intensity (t e-CO2/t metal recovered)')
 subplot(2,2,4);
-plot(x,[env.wasteRecovery]*100,'b.')
+plot(x,[env.wasteRecoveryCorrected]*100,'b.')
 xlabel(xaxis)
 ylabel('Metal Recovery (%)')
 

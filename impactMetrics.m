@@ -65,7 +65,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     vT = 2; %1 horizontal, 2 vertical
     resultsEconomic.baseStage.leaching.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
     resultsEconomic.baseStage.leaching.Fbm = 2.8547;
-    resultsEconomic.baseStage.leaching.capcost = resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
+    resultsEconomic.baseStage.leaching.capcost = 2*resultsBase.numberUnits*CEPCI*400/397*CADUSDconv*resultsEconomic.baseStage.leaching.Cp*resultsEconomic.baseStage.leaching.Fbm;
     x = resultsBase.init.paramSet.vol_cell/1000;
     vT = 1; %1 horizontal, 2 vertical
     resultsEconomic.baseStage.electrowinning.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
@@ -99,7 +99,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     vT = 2; %1 horizontal, 2 vertical
     resultsEconomic.preciousStage.leaching.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
     resultsEconomic.preciousStage.leaching.Fbm = 2.8547;
-    resultsEconomic.preciousStage.leaching.capcost = CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
+    resultsEconomic.preciousStage.leaching.capcost = 2*CEPCI*400/397*CADUSDconv*resultsEconomic.preciousStage.leaching.Cp*resultsEconomic.preciousStage.leaching.Fbm;
     x = resultsPrecious.init.paramSet.vol_cell/1000;
     vT = 1; %1 horizontal, 2 vertical
     resultsEconomic.preciousStage.electrowinning.Cp = 10^(K(vT,1)+K(vT,2)*log10(x)+K(vT,3)*(log10(x))^2);
@@ -122,7 +122,6 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     %preciouscapcosttotal
     resultsEconomic.preciousStage.capcost = resultsEconomic.preciousStage.pump.capcost + resultsEconomic.preciousStage.drive.capcost + resultsEconomic.preciousStage.leaching.capcost + resultsEconomic.preciousStage.electrowinning.capcost + resultsEconomic.preciousStage.cathodecost + resultsEconomic.preciousStage.anodecost + resultsEconomic.preciousStage.agitator.capcost;
     
-    %%%%%ADD rectifier costs maybe?
     %totalcapcost
     resultsEconomic.capcost = resultsEconomic.preciousStage.capcost + resultsEconomic.baseStage.capcost + resultsEconomic.preprocessing.capcost;
     contingencyandfees = 0.30;
