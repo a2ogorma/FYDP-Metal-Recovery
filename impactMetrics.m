@@ -42,11 +42,11 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     resultsEconomic.preprocessing.grinder.Fbm = 2.8;
     resultsEconomic.preprocessing.grinder.capcost = CEPCI*CADUSDconv*resultsEconomic.preprocessing.grinder.Cp*resultsEconomic.preprocessing.grinder.Fbm;
     %magneticdrum
-    resultsEconomic.preprocessing.drum.Cp = 13000;
+    resultsEconomic.preprocessing.drum.Cp = 12560;
     resultsEconomic.preprocessing.drum.Fbm = 1;
     resultsEconomic.preprocessing.drum.capcost = CADUSDconv*resultsEconomic.preprocessing.drum.Cp*resultsEconomic.preprocessing.drum.Fbm;
     %ESP
-    resultsEconomic.preprocessing.ESP.Cp = 30000;%random number
+    resultsEconomic.preprocessing.ESP.Cp = 42250;%from quote
     resultsEconomic.preprocessing.ESP.Fbm = 1;
     resultsEconomic.preprocessing.ESP.capcost = CADUSDconv*resultsEconomic.preprocessing.ESP.Cp*resultsEconomic.preprocessing.ESP.Fbm;
     %preprocessingtotal
@@ -80,7 +80,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     thicknessAnode = 0.05; %m, temporary
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
-    resultsEconomic.baseStage.anodeCost = resultsPrecious.init.paramSet.n_units*resultsBase.numberUnits*(((resultsBase.init.paramSet.n_units/2)+1)/(resultsBase.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    resultsEconomic.baseStage.anodeCost = resultsBase.init.paramSet.n_units*resultsBase.numberUnits*(((resultsBase.init.paramSet.n_units/2)+1)/(resultsBase.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
     %agitator
     resultsEconomic.baseStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
     resultsEconomic.baseStage.agitator.Fbm = 1.3;
@@ -110,11 +110,11 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     thicknessCathode = 0.05; %m, temporary
     matDensityCathode = 11343;%kg/m3, lead
     matCostCathode = 1.61;%$/kg, lead
-    resultsEconomic.preciousStage.cathodecost = resultsPrecious.numberUnits*(A_cell/2)*thicknessCathode*matDensityCathode*matCostCathode;
+    resultsEconomic.preciousStage.cathodecost = resultsPrecious.init.paramSet.n_units*resultsPrecious.numberUnits*(A_cell/2)*thicknessCathode*matDensityCathode*matCostCathode;
     thicknessAnode = 0.05; %m, temporary
     matDensityAnode = 7750; %kg/m3, SS
     matCostAnode = 2.66; %$/kg, SS  
-    resultsEconomic.preciousStage.anodecost = resultsPrecious.numberUnits*(((resultsPrecious.init.paramSet.n_units/2)+1)/(resultsPrecious.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
+    resultsEconomic.preciousStage.anodecost = resultsPrecious.init.paramSet.n_units*resultsPrecious.numberUnits*(((resultsPrecious.init.paramSet.n_units/2)+1)/(resultsPrecious.init.paramSet.n_units/2))*(A_cell/2)*thicknessAnode*matDensityAnode*matCostAnode;
     %agitator
     resultsEconomic.preciousStage.agitator.Cp = 0.5402*0.1^2+705.79+3729.9; %0.1 kW agitator power
     resultsEconomic.preciousStage.agitator.Fbm = 1.3;
@@ -138,7 +138,7 @@ function [resultsEnvironmental, resultsEconomic] = impactMetrics(resultsPreproce
     ... should be all components in solution, including any additives and stuff % refine to actual values soonish
     resultsEconomic.operating.solutionBaseCost = resultsEnvironmental.water.annualWaterBase*solutionCost;
     %solution precious
-    solutionCost = 0.3165475; %$/L Note that this
+    solutionCost = 0.5165475; %$/L Note that this
     ... should be all components in solution, including any additives and stuff %refine to actual values soonish
     resultsEconomic.operating.solutionPreciousCost = resultsEnvironmental.water.annualWaterPrecious*solutionCost;
     %sodium hydroxide addition for pH balancing?
